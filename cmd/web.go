@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/urfave/cli"
+	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
 )
 
@@ -29,6 +30,10 @@ func runWeb(c *cli.Context) error {
 	port := "5000"
 	if c.IsSet("port") {
 		port = c.String("port")
+	}
+
+	if c.IsSet("config") {
+		setting.CustomConf = c.String("config")
 	}
 
 	address := ":" + port
