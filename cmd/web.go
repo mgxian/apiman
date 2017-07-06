@@ -47,6 +47,9 @@ func runWeb(c *cli.Context) error {
 	// get db connection
 	models.Dbinit()
 
+	// migrate tables
+	models.DbMigrate()
+
 	address := ":" + port
 	e := newWeb()
 	e.GET("/", routes.Index)

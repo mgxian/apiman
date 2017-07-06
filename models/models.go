@@ -13,7 +13,8 @@ var (
 	DbCfg struct {
 		Type, Host, Port, User, Password, Name string
 	}
-	DB *gorm.DB
+	DB    *gorm.DB
+	mysql *gorm.DB
 )
 
 func loadConfigs() {
@@ -49,5 +50,10 @@ func Dbinit() {
 		fmt.Println(err)
 	}
 	DB = db
+	mysql = db
 	//DB.Exec("insert into apiman_user(name, nickname, password) value('will', 'will', 'will');")
+}
+
+func DbMigrate() {
+	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
 }

@@ -13,7 +13,8 @@ func Index(c echo.Context) error {
 }
 
 func Home(c echo.Context) error {
-	u := models.User{ID: 123456, Name: "will", Nickname: "毛广献", Password: "md5"}
+	//u := models.User{ID: 123456, Name: "will", Nickname: "毛广献", Password: "md5"}
+	u := models.User{Name: "will", Nickname: "毛广献", Password: "md5"}
 	nickname := u.GetMyName()
 	return c.JSON(http.StatusOK, echo.Map{"user": nickname})
 }

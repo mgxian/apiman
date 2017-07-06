@@ -10,10 +10,11 @@ import (
 
 type User struct {
 	gorm.Model
-	ID       int64
-	Name     string
-	Nickname string
-	Password string
+	//ID       int64
+	Name     string `gorm:"not null;unique"`
+	Nickname string `gorm:"not null"`
+	Password string `gorm:"not null"`
+	Avatar   string
 }
 
 func (u *User) GetMyName() string {
@@ -25,7 +26,7 @@ func (u *User) GetMyName() string {
 	}
 	fmt.Println(db)
 	fmt.Println("exec sql")
-	db.Exec("insert into apiman_user(name, nickname, password) value('will', 'will', 'will');")
+	mysql.Exec("insert into users(name, nickname, password) value('will', 'will', 'will');")
 	log, err := log.GetLogger()
 	if err != nil {
 		//fmt.Println("log errror")
