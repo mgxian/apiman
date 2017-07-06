@@ -19,13 +19,13 @@ type User struct {
 func (u *User) GetMyName() string {
 	db, err := GetDbConnection()
 	if err != nil {
-		println("exec sql")
 		fmt.Println(err)
+	} else {
+		fmt.Println("get db success")
 	}
-	db.Exec("select user();")
-	if err != nil {
-		fmt.Println(err)
-	}
+	fmt.Println(db)
+	fmt.Println("exec sql")
+	db.Exec("insert into apiman_user(name, nickname, password) value('will', 'will', 'will');")
 	log, err := log.GetLogger()
 	if err != nil {
 		//fmt.Println("log errror")

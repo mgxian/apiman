@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/urfave/cli"
+	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/log"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
@@ -42,6 +43,9 @@ func runWeb(c *cli.Context) error {
 
 	// set logger
 	log.LoggerInit()
+
+	// get db connection
+	models.Dbinit()
 
 	address := ":" + port
 	e := newWeb()

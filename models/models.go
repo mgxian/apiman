@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jinzhu/gorm"
@@ -12,16 +13,12 @@ var (
 	DbCfg struct {
 		Type, Host, Port, User, Password, Name string
 	}
+	DB *gorm.DB
 )
 
 func loadConfigs() {
-	//get database config
-	//setting.NewConfig()
-	//println("new cnfig finish")
-	//names := setting.Cfg.SectionStrings()
-	//println(names)
 	sec := setting.Cfg.Section("database")
-	println("get sec")
+	//println("get sec")
 	dbtype := sec.Key("type").String()
 	if dbtype == "mysql" {
 		DbCfg.Host = sec.Key("host").String()
@@ -34,17 +31,23 @@ func loadConfigs() {
 }
 
 func GetDbConnection() (*gorm.DB, error) {
+	if DB != nil {
+		return DB, nil
+	}
+	return nil, errors.New("DB is nil")
+}
+
+func Dbinit() {
 	loadConfigs()
-	println("get config")
 	//apiman:apiman@tcp(192.168.12.212:3306)/apiman
 	connStr := DbCfg.User + ":" + DbCfg.Password + "@tcp(" + DbCfg.Host + ":" + DbCfg.Port + ")/" + DbCfg.Name
-	println("connstr: " + connStr)
+	fmt.Println("connstr: " + connStr)
 	db, err := gorm.Open(DbCfg.Type, connStr)
-	defer db.Close()
+	//defer db.Close()
 	if err != nil {
-		println("connect error")
+		fmt.Println("connect error")
 		fmt.Println(err)
-		return db, err
 	}
-	return db, nil
+	DB = db
+	//DB.Exec("insert into apiman_user(name, nickname, password) value('will', 'will', 'will');")
 }
