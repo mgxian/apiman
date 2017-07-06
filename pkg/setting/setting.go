@@ -44,7 +44,7 @@ func NewConfig() {
 		println("workdir error in newconfig")
 	}
 	if len(Conf) == 0 {
-		println("conf len 0")
+		//println("conf len 0")
 		Conf = workdir + "/conf/app.conf"
 	}
 	println(Conf)
@@ -54,7 +54,7 @@ func NewConfig() {
 	}
 
 	if len(CustomConf) == 0 {
-		println("customconf len 0")
+		//println("customconf len 0")
 		CustomConf = workdir + "/conf/custom.app.conf"
 	}
 	println(CustomConf)
