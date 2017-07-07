@@ -8,6 +8,7 @@ import (
 	"github.com/will835559313/apiman/pkg/log"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
+	"github.com/will835559313/apiman/routes/user"
 )
 
 var Web = cli.Command{
@@ -54,6 +55,7 @@ func runWeb(c *cli.Context) error {
 	e := newWeb()
 	e.GET("/", routes.Index)
 	e.GET("/home", routes.Home)
+	e.POST("/users", user.CreateUser)
 
 	e.Logger.Fatal(e.Start(address))
 	return nil

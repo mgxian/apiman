@@ -13,8 +13,9 @@ var (
 	DbCfg struct {
 		Type, Host, Port, User, Password, Name string
 	}
-	DB    *gorm.DB
-	mysql *gorm.DB
+	DB  *gorm.DB
+	db  *gorm.DB
+	err error
 )
 
 func loadConfigs() {
@@ -42,15 +43,15 @@ func Dbinit() {
 	loadConfigs()
 	//apiman:apiman@tcp(192.168.12.212:3306)/apiman
 	connStr := DbCfg.User + ":" + DbCfg.Password + "@tcp(" + DbCfg.Host + ":" + DbCfg.Port + ")/" + DbCfg.Name
+	connPara := "?charset=utf8&parseTime=True&loc=Local"
 	fmt.Println("connstr: " + connStr)
-	db, err := gorm.Open(DbCfg.Type, connStr)
+	db, err = gorm.Open(DbCfg.Type, connStr+connPara)
 	//defer db.Close()
 	if err != nil {
 		fmt.Println("connect error")
 		fmt.Println(err)
 	}
 	DB = db
-	mysql = db
 	//DB.Exec("insert into apiman_user(name, nickname, password) value('will', 'will', 'will');")
 }
 

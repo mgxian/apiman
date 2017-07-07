@@ -1,37 +1,36 @@
 package models
 
 import (
-	"fmt"
+	//"fmt"
+	"time"
 
-	"github.com/jinzhu/gorm"
-	//_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/will835559313/apiman/pkg/log"
+	//"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	log "github.com/sirupsen/logrus"
 )
 
 type User struct {
-	gorm.Model
-	//ID       int64
-	Name     string `gorm:"not null;unique"`
-	Nickname string `gorm:"not null"`
-	Password string `gorm:"not null"`
-	Avatar   string
+	//gorm.Model
+	ID        uint       `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"-"`
+	Name      string     `json:"name" gorm:"not null;unique"`
+	Nickname  string     `json:"nickname" gorm:"not null"`
+	Password  string     `json:"-" gorm:"not null"`
+	AvatarUrl string     `json:"avatar_url"`
+}
+
+func CreateUser(u *User) error {
+	err = db.Create(u).Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (u *User) GetMyName() string {
-	db, err := GetDbConnection()
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println("get db success")
-	}
-	fmt.Println(db)
-	fmt.Println("exec sql")
-	mysql.Exec("insert into users(name, nickname, password) value('will', 'will', 'will');")
-	log, err := log.GetLogger()
-	if err != nil {
-		//fmt.Println("log errror")
-		panic("get log error")
-	}
-	log.Info("hello db")
+	log.Info("get my name")
 	return u.Nickname
 }
