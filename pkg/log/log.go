@@ -1,31 +1,13 @@
 package log
 
 import (
-	"errors"
 	"os"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/pkg/setting"
 )
 
-var (
-	Log *logrus.Logger
-)
-
-func GetLogger() (*logrus.Logger, error) {
-	if Log != nil {
-		return Log, nil
-	}
-	return nil, errors.New("Log is nil")
-}
-
-//func LoggerInit() (*logrus.Logger, error) {
 func LoggerInit() {
-	// create logger
-	Log = logrus.New()
-
-	//get log config
-	//setting.NewConfig()
 	sec := setting.Cfg.Section("log")
 
 	logFile := sec.Key("file").String()
@@ -37,22 +19,21 @@ func LoggerInit() {
 		// set log level
 		switch logLevel {
 		case "debug":
-			Log.Level = logrus.DebugLevel
+			log.SetLevel(log.DebugLevel)
 		case "info":
-			Log.Level = logrus.InfoLevel
+			log.SetLevel(log.InfoLevel)
 		case "warn":
-			Log.Level = logrus.WarnLevel
+			log.SetLevel(log.WarnLevel)
 		case "error":
-			Log.Level = logrus.ErrorLevel
+			log.SetLevel(log.ErrorLevel)
 		default:
-			Log.Info("unsport log level user default info")
-			Log.Level = logrus.InfoLevel
+			log.Info("unsport log level user default info")
+			log.SetLevel(log.InfoLevel)
 		}
 
 		// set log file
-		Log.Out = file
+		log.SetOutput(file)
 	} else {
-		Log.Info("Failed to log to file, using default stderr")
+		log.Info("Failed to log to file, using default stderr")
 	}
-
 }

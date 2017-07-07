@@ -6,9 +6,11 @@ import (
 	"github.com/urfave/cli"
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/log"
+	//"github.com/will835559313/apiman/pkg/myvalidator"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
 	"github.com/will835559313/apiman/routes/user"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 var Web = cli.Command{
@@ -22,10 +24,19 @@ var Web = cli.Command{
 	},
 }
 
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+func (cv *CustomValidator) Validate(i interface{}) error {
+	return cv.validator.Struct(i)
+}
+
 func newWeb() *echo.Echo {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Validator = &CustomValidator{validator: validator.New()}
 	return e
 }
 
@@ -54,8 +65,10 @@ func runWeb(c *cli.Context) error {
 	address := ":" + port
 	e := newWeb()
 	e.GET("/", routes.Index)
-	e.GET("/home", routes.Home)
+	//e.GET("/home", routes.Home)
 	e.POST("/users", user.CreateUser)
+	e.GET("/users/:username", user.GetUserByName)
+	e.PUT("/users/:username", user.UpdateUserByName)
 
 	e.Logger.Fatal(e.Start(address))
 	return nil
