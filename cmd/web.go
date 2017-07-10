@@ -69,6 +69,10 @@ func runWeb(c *cli.Context) error {
 	e.POST("/users", user.CreateUser)
 	e.GET("/users/:username", user.GetUserByName)
 	e.PUT("/users/:username", user.UpdateUserByName)
+	e.DELETE("/users/:username", user.DeleteUserByName)
+	e.POST("/users/:username/reset_password", user.RestUserPassword)
+
+	e.POST("/oauth2/token", user.GetToken)
 
 	e.Logger.Fatal(e.Start(address))
 	return nil
