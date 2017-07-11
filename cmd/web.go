@@ -69,12 +69,11 @@ func runWeb(c *cli.Context) error {
 	address := ":" + port
 	e := newWeb()
 	e.GET("/", routes.Index)
-	//e.GET("/home", routes.Home)
 	e.POST("/users", user.CreateUser)
 	e.GET("/users/:username", user.GetUserByName)
 	e.PUT("/users/:username", user.UpdateUserByName)
 	e.DELETE("/users/:username", user.DeleteUserByName)
-	e.POST("/users/:username/reset_password", user.RestUserPassword)
+	e.POST("/users/:username/change_password", user.ChangeUserPassword)
 
 	e.POST("/oauth2/token", user.GetToken)
 

@@ -1,6 +1,7 @@
 package setting
 
 import (
+	//"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,7 @@ var (
 
 func execPath() (string, error) {
 	file, err := exec.LookPath(os.Args[0])
+	//fmt.Printf("%v", os.Args)
 	if err != nil {
 		return "", err
 	}
@@ -26,6 +28,7 @@ func execPath() (string, error) {
 
 func WorkDir() (string, error) {
 	AppPath, err := execPath()
+	//fmt.Println(AppPath)
 	if err != nil {
 		println("app path error")
 	}

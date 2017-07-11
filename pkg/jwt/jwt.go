@@ -54,6 +54,11 @@ func ParseToken(tokenString string) (*jwtCustomClaims, error) {
 		return []byte(secret), nil
 	})
 
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
 	if claims, ok := token.Claims.(*jwtCustomClaims); ok && token.Valid {
 		//fmt.Printf("%v %v", claims.Name, claims.StandardClaims.ExpiresAt)
 		return claims, nil
@@ -66,6 +71,9 @@ func ParseToken(tokenString string) (*jwtCustomClaims, error) {
 
 func GetClaims(c echo.Context) (*jwtCustomClaims, error) {
 	auth := c.Request().Header.Get("Authorization")
+	if len(auth) < 8 {
+		return nil, errors.New("need token in header")
+	}
 	token := auth[7:]
 	fmt.Println(token)
 	now := time.Now().Unix()

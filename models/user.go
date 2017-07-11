@@ -14,8 +14,8 @@ import (
 type User struct {
 	//gorm.Model
 	ID        uint       `json:"id" gorm:"primary_key"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"-"`
+	UpdatedAt time.Time  `json:"-"`
 	DeletedAt *time.Time `json:"-"`
 	Name      string     `json:"name" gorm:"not null;unique" validate:"required"`
 	Nickname  string     `json:"nickname" gorm:"not null" validate:"required"`
@@ -119,7 +119,7 @@ func setPassword(id uint, str string) error {
 	return nil
 }
 
-func RestPassword(oldPassword, newPassword string, id uint) error {
+func ChangeUserPassword(oldPassword, newPassword string, id uint) error {
 	if !checkPassword(id, oldPassword) {
 		return errors.New("passord is not right")
 	}
