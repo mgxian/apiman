@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/models"
+	"github.com/will835559313/apiman/pkg/jwt"
 	//"gopkg.in/go-playground/validator.v9"
 )
 
@@ -57,6 +58,16 @@ func GetUserByID(c echo.Context) (err error) {
 }
 
 func GetUserByName(c echo.Context) (err error) {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSONPretty(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			}, "  ")
+	}
+
+	fmt.Println(tokenInfo.Name)
+
 	name := c.Param("username")
 	u := new(models.User)
 	u, err = models.GetUserByName(name)
@@ -64,12 +75,12 @@ func GetUserByName(c echo.Context) (err error) {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	if err = c.Validate(u); err != nil {
-		log.Info("validator error")
-		fmt.Println(err)
-		//return c.NoContent(http.StatusNotFound)
-		return err
-	}
+	//	if err = c.Validate(u); err != nil {
+	//		log.Info("validator error")
+	//		fmt.Println(err)
+	//		//return c.NoContent(http.StatusNotFound)
+	//		return err
+	//	}
 	return c.JSONPretty(http.StatusOK, u, "  ")
 }
 
@@ -146,12 +157,12 @@ func GetToken(c echo.Context) error {
 		}, "  ")
 	}
 	if token, err := models.GetToken(login.Name, login.Password); err != nil {
-		return c.JSONPretty(http.StatusBadRequest, echo.Map{
+		return c.JSONPretty(http.StatusUnauthorized, echo.Map{
 			"message": "用户名或密码错误",
 		}, "  ")
 	} else {
 		return c.JSONPretty(http.StatusOK, echo.Map{
-			"token": token,
+			"access_token": token,
 		}, "  ")
 	}
 }

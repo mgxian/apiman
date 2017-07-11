@@ -7,6 +7,7 @@ import (
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/log"
 	//"github.com/will835559313/apiman/pkg/myvalidator"
+	"github.com/will835559313/apiman/pkg/jwt"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
 	"github.com/will835559313/apiman/routes/user"
@@ -61,6 +62,9 @@ func runWeb(c *cli.Context) error {
 
 	// migrate tables
 	models.DbMigrate()
+
+	// set jwt
+	jwt.JwtInint()
 
 	address := ":" + port
 	e := newWeb()

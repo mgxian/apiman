@@ -1,15 +1,19 @@
 package jwt
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/labstack/echo"
 	"github.com/will835559313/apiman/pkg/setting"
 )
 
 var (
 	secret string
+	expire int
 )
 
 type jwtCustomClaims struct {
@@ -22,6 +26,8 @@ func JwtInint() {
 	// get secret
 	sec := setting.Cfg.Section("jwt")
 	secret = sec.Key("secret").String()
+	expire, _ = strconv.Atoi(sec.Key("expire").String())
+	fmt.Println(expire)
 }
 
 func GetToken(name string, admin bool) (string, error) {
@@ -30,7 +36,7 @@ func GetToken(name string, admin bool) (string, error) {
 		name,
 		admin,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * time.Duration(expire)).Unix(),
 		},
 	}
 
@@ -49,11 +55,28 @@ func ParseToken(tokenString string) (*jwtCustomClaims, error) {
 	})
 
 	if claims, ok := token.Claims.(*jwtCustomClaims); ok && token.Valid {
-		fmt.Printf("%v %v", claims.Name, claims.StandardClaims.ExpiresAt)
+		//fmt.Printf("%v %v", claims.Name, claims.StandardClaims.ExpiresAt)
 		return claims, nil
 	} else {
 		return nil, err
 		fmt.Println(err)
 	}
 	return nil, err
+}
+
+func GetClaims(c echo.Context) (*jwtCustomClaims, error) {
+	auth := c.Request().Header.Get("Authorization")
+	token := auth[7:]
+	fmt.Println(token)
+	now := time.Now().Unix()
+	claims, err := ParseToken(token)
+	if err != nil {
+		return nil, errors.New("token error")
+	}
+
+	expire_timestamp := claims.StandardClaims.ExpiresAt
+	if expire_timestamp < now {
+		return nil, errors.New("token expired")
+	}
+	return claims, err
 }
