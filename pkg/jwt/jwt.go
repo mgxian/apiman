@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -55,7 +56,9 @@ func ParseToken(tokenString string) (*jwtCustomClaims, error) {
 	})
 
 	if err != nil {
+		//fmt.Println("in 100")
 		fmt.Println(err)
+		//fmt.Println("in 101")
 		return nil, err
 	}
 
@@ -76,15 +79,12 @@ func GetClaims(c echo.Context) (*jwtCustomClaims, error) {
 	}
 	token := auth[7:]
 	fmt.Println(token)
-	now := time.Now().Unix()
 	claims, err := ParseToken(token)
 	if err != nil {
+		if strings.Contains(err.Error(), "expire") {
+			return nil, errors.New("token expired")
+		}
 		return nil, errors.New("token error")
-	}
-
-	expire_timestamp := claims.StandardClaims.ExpiresAt
-	if expire_timestamp < now {
-		return nil, errors.New("token expired")
 	}
 	return claims, err
 }

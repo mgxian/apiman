@@ -181,4 +181,7 @@ func TestDeleteUser(t *testing.T) {
 	if assert.NoError(t, DeleteUserByName(c)) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	}
+
+	// delete user table
+	models.DB.DropTableIfExists(&models.User{})
 }
