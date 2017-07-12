@@ -15,8 +15,8 @@ import (
 
 type UserForm struct {
 	Name      string `json:"name" validate:"required"`
-	Nickname  string `json:"nickname" validate:"required"`
-	Password  string `json:"password" validate:"required`
+	Nickname  string `json:"nickname" validate:"required,max=20"`
+	Password  string `json:"password" validate:"required,min=6"`
 	AvatarUrl string `json:"avatar_url"`
 }
 
@@ -26,6 +26,13 @@ func CreateUser(c echo.Context) (err error) {
 		fmt.Println(err)
 		log.Info("user bind error")
 		return
+	}
+
+	if err = c.Validate(uf); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "request data is not right",
+		})
 	}
 
 	u, err := models.GetUserByName(uf.Name)
@@ -124,8 +131,24 @@ func UpdateUserByName(c echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	newUser := new(UserForm)
+	//	type UserUpdateForm struct {
+	//	Nickname  string `json:"nickname" validate:"required,max=20"`
+	//	AvatarUrl string `json:"avatar_url"`
+	//	}
+
+	newUser := new(struct {
+		Nickname  string `json:"nickname" validate:"required,max=20"`
+		AvatarUrl string `json:"avatar_url"`
+	})
 	c.Bind(newUser)
+
+	if err = c.Validate(newUser); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "request data is not right",
+		})
+	}
+
 	oldUser.Nickname = newUser.Nickname
 	oldUser.AvatarUrl = newUser.AvatarUrl
 
@@ -171,11 +194,6 @@ func DeleteUserByName(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-type Password struct {
-	OldPassword string `json:"old_password" form:"old_password" query:"old_password"`
-	NewPassword string `json:"new_password" form:"new_password" query:"new_password"`
-}
-
 func ChangeUserPassword(c echo.Context) error {
 	tokenInfo, err := jwt.GetClaims(c)
 	if err != nil {
@@ -196,10 +214,22 @@ func ChangeUserPassword(c echo.Context) error {
 			})
 	}
 
-	password := new(Password)
+	password := new(struct {
+		OldPassword string `json:"old_password" validate:"required,min=6"`
+		NewPassword string `json:"new_password" validate:"required,min=6`
+	})
+
 	if err := c.Bind(password); err != nil {
 		fmt.Println(err)
 	}
+
+	if err = c.Validate(password); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "request data is not right",
+		})
+	}
+
 	u, err := models.GetUserByName(name)
 	if u == nil {
 		return c.NoContent(http.StatusNotFound)
@@ -214,13 +244,12 @@ func ChangeUserPassword(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-type Login struct {
-	Name     string `json:name`
-	Password string `json:password`
-}
-
 func GetToken(c echo.Context) error {
-	login := new(Login)
+	login := new(struct {
+		Name     string `json:"name" validate:"required,max=20"`
+		Password string `json:"password" validate:"required,min=6"`
+	})
+
 	if err := c.Bind(login); err != nil {
 		log.WithFields(log.Fields{
 			"username": login.Name,
@@ -229,6 +258,14 @@ func GetToken(c echo.Context) error {
 			"message": "请求数据错误",
 		}, "  ")
 	}
+
+	if err := c.Validate(login); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "request data is not right",
+		})
+	}
+
 	if token, err := models.GetToken(login.Name, login.Password); err != nil {
 		return c.JSONPretty(http.StatusUnauthorized, echo.Map{
 			"message": "用户名或密码错误",

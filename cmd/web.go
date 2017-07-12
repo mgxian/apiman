@@ -69,13 +69,24 @@ func runWeb(c *cli.Context) error {
 	address := ":" + port
 	e := newWeb()
 	e.GET("/", routes.Index)
+
+	// user
 	e.POST("/users", user.CreateUser)
 	e.GET("/users/:username", user.GetUserByName)
 	e.PUT("/users/:username", user.UpdateUserByName)
 	e.DELETE("/users/:username", user.DeleteUserByName)
 	e.POST("/users/:username/change_password", user.ChangeUserPassword)
 
+	// token
 	e.POST("/oauth2/token", user.GetToken)
+
+	// team
+
+	// project
+
+	// apigroup
+
+	// api
 
 	e.Logger.Fatal(e.Start(address))
 	return nil
