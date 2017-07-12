@@ -56,5 +56,6 @@ func Dbinit() {
 }
 
 func DbMigrate() {
-	DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8").AutoMigrate(&User{})
+	mysql := DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8")
+	mysql.AutoMigrate(&User{}, &Team{})
 }

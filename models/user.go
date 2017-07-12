@@ -17,8 +17,8 @@ type User struct {
 	CreatedAt time.Time  `json:"-"`
 	UpdatedAt time.Time  `json:"-"`
 	DeletedAt *time.Time `json:"-"`
-	Name      string     `json:"name" gorm:"not null;unique" validate:"required"`
-	Nickname  string     `json:"nickname" gorm:"not null" validate:"required"`
+	Name      string     `json:"name" gorm:"not null;unique"`
+	Nickname  string     `json:"nickname" gorm:"not null"`
 	Password  string     `json:"-" gorm:"not null"`
 	AvatarUrl string     `json:"avatar_url"`
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/will835559313/apiman/pkg/jwt"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
+	"github.com/will835559313/apiman/routes/team"
 	"github.com/will835559313/apiman/routes/user"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -81,6 +82,7 @@ func runWeb(c *cli.Context) error {
 	e.POST("/oauth2/token", user.GetToken)
 
 	// team
+	e.POST("/teams", team.CreateTeam)
 
 	// project
 
