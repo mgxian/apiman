@@ -9,14 +9,14 @@ import (
 )
 
 type Team struct {
-	ID          uint       `json:"id" gorm:"primary_key"`
-	CreatedAt   time.Time  `json:"-"`
-	UpdatedAt   time.Time  `json:"-"`
-	DeletedAt   *time.Time `json:"-"`
-	Name        string     `json:"name" gorm:"not null;unique"`
-	Description string     `json:"description"`
-	Maintainers uint       `json:"maintainers" gorm:"not null"`
-	AvatarUrl   string     `json:"avatar_url"`
+	ID        uint      `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+	//DeletedAt   *time.Time `json:"-"`
+	Name        string `json:"name" gorm:"not null;unique"`
+	Description string `json:"description"`
+	Maintainers uint   `json:"maintainers" gorm:"not null"`
+	AvatarUrl   string `json:"avatar_url"`
 }
 
 func CreateTeam(t *Team) error {

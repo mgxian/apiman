@@ -13,14 +13,14 @@ import (
 
 type User struct {
 	//gorm.Model
-	ID        uint       `json:"id" gorm:"primary_key"`
-	CreatedAt time.Time  `json:"-"`
-	UpdatedAt time.Time  `json:"-"`
-	DeletedAt *time.Time `json:"-"`
-	Name      string     `json:"name" gorm:"not null;unique"`
-	Nickname  string     `json:"nickname" gorm:"not null"`
-	Password  string     `json:"-" gorm:"not null"`
-	AvatarUrl string     `json:"avatar_url"`
+	ID        uint      `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+	//DeletedAt *time.Time `json:"-"`
+	Name      string `json:"name" gorm:"not null;unique"`
+	Nickname  string `json:"nickname" gorm:"not null"`
+	Password  string `json:"-" gorm:"not null"`
+	AvatarUrl string `json:"avatar_url"`
 }
 
 func CreateUser(u *User) error {

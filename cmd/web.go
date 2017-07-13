@@ -83,6 +83,9 @@ func runWeb(c *cli.Context) error {
 
 	// team
 	e.POST("/teams", team.CreateTeam)
+	e.GET("/teams/:teamname", team.GetTeamByName)
+	e.PUT("/teams/:teamname", team.UpdateTeamByName)
+	e.DELETE("/teams/:teamname", team.DeleteTeamByName)
 
 	// project
 
