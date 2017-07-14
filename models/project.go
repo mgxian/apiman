@@ -8,19 +8,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Team struct {
+type Project struct {
 	ID          uint      `json:"id" gorm:"primary_key"`
 	CreatedAt   time.Time `json:"-"`
 	UpdatedAt   time.Time `json:"-"`
-	Name        string    `json:"name" gorm:"not null;unique"`
-	Creator     uint      `json:"creator" gorm:"not null"`
+	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description"`
+	Creator     uint      `json:"creator" gorm:"default 0"`
+	Team        uint      `json:"team" gorm:"default 0"`
 	AvatarUrl   string    `json:"avatar_url"`
 	//DeletedAt   *time.Time `json:"-"`
-	//Maintainers uint   `json:"maintainers" gorm:"not null"`
 }
 
-func CreateTeam(t *Team) error {
+func CreateProject(t *Project) error {
 	err := db.Create(t).Error
 	if err != nil {
 		log.Info(err.Error())
@@ -30,29 +30,18 @@ func CreateTeam(t *Team) error {
 	return nil
 }
 
-func GetTeamByName(name string) (*Team, error) {
-	t := new(Team)
-	err := db.Where("name = ?", name).First(t).Error
+func GetProjectByID(id uint) (*Project, error) {
+	p := new(Project)
+	err := db.First(p, id).Error
 	if err != nil {
 		log.Info(err.Error())
 		return nil, err
 	}
 
-	return t, nil
+	return p, nil
 }
 
-func GetTeamByID(id uint) (*Team, error) {
-	t := new(Team)
-	err := db.First(t, id).Error
-	if err != nil {
-		log.Info(err.Error())
-		return nil, err
-	}
-
-	return t, nil
-}
-
-func UpdateTeam(t *Team) error {
+func UpdateProject(t *Project) error {
 	err := db.Model(t).Updates(t).Error
 	if err != nil {
 		log.Info(err.Error())
@@ -62,8 +51,8 @@ func UpdateTeam(t *Team) error {
 	return nil
 }
 
-func DeleteTeamByName(name string) error {
-	err := db.Where("name = ?", name).Delete(Team{}).Error
+func DeleteProjectByID(name string) error {
+	err := db.Where("name = ?", name).Delete(Project{}).Error
 	if err != nil {
 		log.Info(err.Error())
 		return err

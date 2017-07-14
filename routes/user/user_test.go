@@ -48,7 +48,7 @@ func init() {
 	models.Dbinit()
 
 	// migrate tables
-	models.DB.DropTableIfExists(&models.User{})
+	// models.DB.DropTableIfExists(&models.User{})
 	models.DbMigrate()
 
 	// set jwt
@@ -183,5 +183,5 @@ func TestDeleteUser(t *testing.T) {
 	}
 
 	// delete user table
-	models.DB.DropTableIfExists(&models.User{})
+	// models.DB.DropTableIfExists(&models.User{})
 }

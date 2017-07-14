@@ -10,6 +10,7 @@ import (
 	"github.com/will835559313/apiman/pkg/jwt"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
+	"github.com/will835559313/apiman/routes/project"
 	"github.com/will835559313/apiman/routes/team"
 	"github.com/will835559313/apiman/routes/user"
 	"gopkg.in/go-playground/validator.v9"
@@ -86,8 +87,17 @@ func runWeb(c *cli.Context) error {
 	e.GET("/teams/:teamname", team.GetTeamByName)
 	e.PUT("/teams/:teamname", team.UpdateTeamByName)
 	e.DELETE("/teams/:teamname", team.DeleteTeamByName)
+	e.POST("/teams/:teamname/members", team.AddOrUpdateTeamMember)
+	e.DELETE("/teams/:teamname/members/:username", team.RemoveTeamMember)
+	e.PUT("/teams/:teamname/members/:username", team.AddOrUpdateTeamMember)
+	e.GET("/teams/:teamname/members", team.GetTeamMembers)
+	e.GET("/users/:username/teams", team.GetUserTeams)
 
 	// project
+	e.POST("/teams/:teamname/projects", project.CreateProject)
+	e.GET("/projects/:id", project.GetProjectByID)
+	e.PUT("/projects/:id", project.UpdateProjectByID)
+	e.DELETE("/projects/:id", project.DeleteProjectByID)
 
 	// apigroup
 
