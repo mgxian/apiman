@@ -1,2 +1,2 @@
 # apiman
-Go Web 基础结构
+使用go语言实现的API接口管理工具
