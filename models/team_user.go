@@ -24,10 +24,10 @@ const (
 	Reader     = 3
 )
 
-func AddOrUpdateMember(teamname string, useranme string, role int) error {
+func AddOrUpdateMember(teamname string, username string, role int) error {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
-	u, _ := GetUserByName(useranme)
+	u, _ := GetUserByName(username)
 
 	// select
 	err := db.Where("team_id = ? and user_id = ?", t.ID, u.ID).First(tu).Error
@@ -40,9 +40,9 @@ func AddOrUpdateMember(teamname string, useranme string, role int) error {
 	return err
 }
 
-func RemoveMember(teamname, useranme string) error {
+func RemoveMember(teamname, username string) error {
 	t, _ := GetTeamByName(teamname)
-	u, _ := GetUserByName(useranme)
+	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ?", t.ID, u.ID).Delete(TeamUser{}).Error
 	return err
 }
@@ -88,11 +88,20 @@ type UserTeams struct {
 	Role string `json:"role"`
 }
 
-func GetUserTeams(useranme string) ([]*UserTeams, error) {
+func GetUserTeams(username string) ([]*UserTeams, error) {
+	//fmt.Println("---------first in--------------")
 	userteams := make([]*UserTeams, 0)
 	tus := make([]*TeamUser, 0)
-	u, _ := GetUserByName(useranme)
-	err := db.Where("user_id = ?", u.ID).Find(&tus).Error
+	//fmt.Println("---------second in--------------")
+	u, err := GetUserByName(username)
+	if u == nil {
+		fmt.Println("---------get user error--------------")
+		return nil, err
+	}
+	//fmt.Println("---------third in--------------")
+	err = db.Where("user_id = ?", u.ID).Find(&tus).Error
+	//fmt.Println(err)
+	//fmt.Printf("-----tus\n%v------\n", tus)
 
 	role := "reader"
 	for _, tu := range tus {
@@ -108,13 +117,14 @@ func GetUserTeams(useranme string) ([]*UserTeams, error) {
 		}
 		userteams = append(userteams, &UserTeams{Team: *t, Role: role})
 	}
+	fmt.Printf("userteams: %v", userteams)
 	return userteams, err
 }
 
-func IsTeamMaintainer(teamname, useranme string) bool {
+func IsTeamMaintainer(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
-	u, _ := GetUserByName(useranme)
+	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Maintainer)).First(tu).Error
 	if err == nil {
 		return true
@@ -124,10 +134,10 @@ func IsTeamMaintainer(teamname, useranme string) bool {
 	return false
 }
 
-func IsTeamMember(teamname, useranme string) bool {
+func IsTeamMember(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
-	u, _ := GetUserByName(useranme)
+	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Member)).First(tu).Error
 	if err == nil {
 		return true
@@ -136,10 +146,10 @@ func IsTeamMember(teamname, useranme string) bool {
 	return false
 }
 
-func IsTeamReader(teamname, useranme string) bool {
+func IsTeamReader(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
-	u, _ := GetUserByName(useranme)
+	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Reader)).First(tu).Error
 	if err == nil {
 		return true

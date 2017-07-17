@@ -51,8 +51,8 @@ func UpdateProject(t *Project) error {
 	return nil
 }
 
-func DeleteProjectByID(name string) error {
-	err := db.Where("name = ?", name).Delete(Project{}).Error
+func DeleteProjectByID(id uint) error {
+	err := db.Where("id = ?", id).Delete(Project{}).Error
 	if err != nil {
 		log.Info(err.Error())
 		return err

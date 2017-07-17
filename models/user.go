@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -47,13 +48,19 @@ func GetUserByID(id uint) (*User, error) {
 
 func GetUserByName(name string) (*User, error) {
 	u := new(User)
+	//fmt.Println("-----------user-----------------")
+	fmt.Println(name)
+
 	err := db.Where("name = ?", name).First(u).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"name": name,
 		}).Info("name not find in users")
+		fmt.Println(err)
+		//fmt.Println("-----------user-----------------")
 		return nil, errors.New("name not find in users")
 	}
+	//fmt.Println("-----------user-----------------")
 	return u, nil
 }
 

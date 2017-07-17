@@ -159,6 +159,7 @@ func UpdateProjectByID(c echo.Context) error {
 				"message": "id must be int",
 			})
 	}
+
 	p, err := models.GetProjectByID(uint(idint))
 
 	t, _ := models.GetTeamByID(p.Team)
@@ -191,8 +192,11 @@ func UpdateProjectByID(c echo.Context) error {
 		})
 	}
 
+	avatarUrlOld := p.AvatarUrl
 	copier.Copy(p, puf)
-	p.ID = 0
+	if puf.AvatarUrl == "" {
+		p.AvatarUrl = avatarUrlOld
+	}
 
 	if err := models.UpdateProject(p); err != nil {
 		return c.NoContent(http.StatusInternalServerError)
@@ -235,7 +239,7 @@ func DeleteProjectByID(c echo.Context) error {
 			})
 	}
 
-	if err = models.DeleteProjectByID(id); err != nil {
+	if err = models.DeleteProjectByID(uint(idint)); err != nil {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
