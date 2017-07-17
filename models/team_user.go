@@ -6,7 +6,7 @@ import (
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	//log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type TeamUser struct {
@@ -37,6 +37,12 @@ func AddOrUpdateMember(teamname string, username string, role int) error {
 
 	err = db.Save(tu).Error
 
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("add or update member error")
+	}
+
 	return err
 }
 
@@ -44,6 +50,11 @@ func RemoveMember(teamname, username string) error {
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ?", t.ID, u.ID).Delete(TeamUser{}).Error
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("remove member error")
+	}
 	return err
 }
 
@@ -51,6 +62,11 @@ func RemoveAllMember(teamname string) error {
 	t, _ := GetTeamByName(teamname)
 	fmt.Println(t.Name)
 	err := db.Where("team_id = ?", t.ID).Delete(TeamUser{}).Error
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("remove all member error")
+	}
 	fmt.Println(err)
 	return err
 }
@@ -65,6 +81,11 @@ func GetTeamMembers(teamname string) ([]*TeamMemberInfo, error) {
 	tus := make([]*TeamUser, 0)
 	t, _ := GetTeamByName(teamname)
 	err := db.Where("team_id = ?", t.ID).Find(&tus).Error
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("get team member error")
+	}
 	//fmt.Printf("%v", tus)
 	role := "reader"
 	for _, tu := range tus {
@@ -100,6 +121,12 @@ func GetUserTeams(username string) ([]*UserTeams, error) {
 	}
 	//fmt.Println("---------third in--------------")
 	err = db.Where("user_id = ?", u.ID).Find(&tus).Error
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("get user team error")
+	}
 	//fmt.Println(err)
 	//fmt.Printf("-----tus\n%v------\n", tus)
 
@@ -124,14 +151,19 @@ func GetUserTeams(username string) ([]*UserTeams, error) {
 func IsTeamMaintainer(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
+	//log.Info("team: %v", t)
 	u, _ := GetUserByName(username)
+	//log.Info("user: %v", u)
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Maintainer)).First(tu).Error
-	if err == nil {
-		return true
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("check user maintainer role error")
+		return false
 	}
 	//fmt.Printf("tu is %v", tu)
 	fmt.Println(err)
-	return false
+	return true
 }
 
 func IsTeamMember(teamname, username string) bool {
@@ -139,11 +171,14 @@ func IsTeamMember(teamname, username string) bool {
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Member)).First(tu).Error
-	if err == nil {
-		return true
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("check user member role error")
+		return false
 	}
 	fmt.Println(err)
-	return false
+	return true
 }
 
 func IsTeamReader(teamname, username string) bool {
@@ -151,9 +186,12 @@ func IsTeamReader(teamname, username string) bool {
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Reader)).First(tu).Error
-	if err == nil {
-		return true
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("check user reader role error")
+		return false
 	}
 	fmt.Println(err)
-	return false
+	return true
 }

@@ -28,7 +28,9 @@ func CreateUser(u *User) error {
 	u.Password, _ = getPassord(u.Password)
 	err := db.Create(u).Error
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("create user error")
 		return err
 	}
 	return nil
@@ -39,8 +41,8 @@ func GetUserByID(id uint) (*User, error) {
 	err := db.First(u, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"id": id,
-		}).Info("id not find in users")
+			"mysql": err.Error(),
+		}).Info("get user error")
 		return nil, errors.New("id not find in users")
 	}
 	return u, nil
@@ -48,19 +50,18 @@ func GetUserByID(id uint) (*User, error) {
 
 func GetUserByName(name string) (*User, error) {
 	u := new(User)
-	//fmt.Println("-----------user-----------------")
 	fmt.Println(name)
 
 	err := db.Where("name = ?", name).First(u).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"name": name,
-		}).Info("name not find in users")
+			"mysql":    err.Error(),
+			"username": name,
+		}).Info("get user error")
 		fmt.Println(err)
-		//fmt.Println("-----------user-----------------")
 		return nil, errors.New("name not find in users")
 	}
-	//fmt.Println("-----------user-----------------")
+	fmt.Printf("user: %v", u)
 	return u, nil
 }
 
@@ -69,12 +70,22 @@ func UpdateUser(u *User) error {
 	//db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
 	u.Password = ""
 	err := db.Model(u).Updates(u).Error
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("update user error")
+	}
 	return err
 }
 
 func DeleteUserByUsername(name string) error {
 	u, err := GetUserByName(name)
 	err = db.Delete(u).Error
+	if err != nil {
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("delete user error")
+	}
 	return err
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/will835559313/apiman/pkg/jwt"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
+	"github.com/will835559313/apiman/routes/apigroup"
 	"github.com/will835559313/apiman/routes/project"
 	"github.com/will835559313/apiman/routes/team"
 	"github.com/will835559313/apiman/routes/user"
@@ -100,6 +101,10 @@ func runWeb(c *cli.Context) error {
 	e.DELETE("/projects/:id", project.DeleteProjectByID)
 
 	// apigroup
+	e.POST("/projects/:id/apigroups", apigroup.CreateApiGroup)
+	e.GET("/apigroups/:id", apigroup.GetApiGroupByID)
+	e.PUT("/apigroups/:id", apigroup.UpdateApiGroupByID)
+	e.DELETE("/apigroups/:id", apigroup.DeleteApiGroupByID)
 
 	// api
 

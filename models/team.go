@@ -23,7 +23,9 @@ type Team struct {
 func CreateTeam(t *Team) error {
 	err := db.Create(t).Error
 	if err != nil {
-		log.Info(err.Error())
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("create team error")
 		return err
 	}
 
@@ -34,7 +36,9 @@ func GetTeamByName(name string) (*Team, error) {
 	t := new(Team)
 	err := db.Where("name = ?", name).First(t).Error
 	if err != nil {
-		log.Info(err.Error())
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("get team error")
 		return nil, err
 	}
 
@@ -45,7 +49,10 @@ func GetTeamByID(id uint) (*Team, error) {
 	t := new(Team)
 	err := db.First(t, id).Error
 	if err != nil {
-		log.Info(err.Error())
+		log.WithFields(log.Fields{
+			"mysql":   err.Error(),
+			"team_id": id,
+		}).Info("get team error")
 		return nil, err
 	}
 
@@ -55,7 +62,9 @@ func GetTeamByID(id uint) (*Team, error) {
 func UpdateTeam(t *Team) error {
 	err := db.Model(t).Updates(t).Error
 	if err != nil {
-		log.Info(err.Error())
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("update team error")
 		return err
 	}
 
@@ -65,7 +74,9 @@ func UpdateTeam(t *Team) error {
 func DeleteTeamByName(name string) error {
 	err := db.Where("name = ?", name).Delete(Team{}).Error
 	if err != nil {
-		log.Info(err.Error())
+		log.WithFields(log.Fields{
+			"mysql": err.Error(),
+		}).Info("delete team error")
 		return err
 	}
 

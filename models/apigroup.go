@@ -8,61 +8,60 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Project struct {
+type ApiGroup struct {
 	ID          uint      `json:"id" gorm:"primary_key"`
 	CreatedAt   time.Time `json:"-"`
 	UpdatedAt   time.Time `json:"-"`
 	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description"`
 	Creator     uint      `json:"creator" gorm:"default 0"`
-	Team        uint      `json:"team" gorm:"default 0"`
-	AvatarUrl   string    `json:"avatar_url"`
+	Project     uint      `json:"project" gorm:"default 0"`
 	//DeletedAt   *time.Time `json:"-"`
 }
 
-func CreateProject(t *Project) error {
-	err := db.Create(t).Error
+func CreateApiGroup(apigroup *ApiGroup) error {
+	err := db.Create(apigroup).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"mysql": err.Error(),
-		}).Info("create project error")
+		}).Info("create api group error")
 		return err
 	}
 
 	return nil
 }
 
-func GetProjectByID(id uint) (*Project, error) {
-	p := new(Project)
-	err := db.First(p, id).Error
+func GetApiGroupByID(id uint) (*ApiGroup, error) {
+	apigroup := new(ApiGroup)
+	err := db.First(apigroup, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"mysql": err.Error(),
-		}).Info("get project error")
+		}).Info("get api group error")
 		return nil, err
 	}
 
-	return p, nil
+	return apigroup, nil
 }
 
-func UpdateProject(t *Project) error {
-	err := db.Model(t).Updates(t).Error
+func UpdateApiGroup(apigroup *ApiGroup) error {
+	err := db.Model(apigroup).Updates(apigroup).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"mysql": err.Error(),
-		}).Info("update project error")
+		}).Info("update api group error")
 		return err
 	}
 
 	return nil
 }
 
-func DeleteProjectByID(id uint) error {
-	err := db.Where("id = ?", id).Delete(Project{}).Error
+func DeleteApiGroupByID(id uint) error {
+	err := db.Where("id = ?", id).Delete(ApiGroup{}).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"mysql": err.Error(),
-		}).Info("delete project error")
+		}).Info("delete api group error")
 		return err
 	}
 
