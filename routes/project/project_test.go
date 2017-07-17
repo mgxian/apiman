@@ -1,4 +1,4 @@
-package team
+package project
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -21,10 +22,11 @@ import (
 )
 
 var (
-	teamJSON     = `{"name":"famulei","description":"team","creator":"will","avatar_url":"http://www.famulei.com/images/index_v4/slogan.png"}`
-	newTeamJSON  = `{"name":"famulei","description":"a great team","avatar_url":"http://www.famulei.com/images/index_v3/slogan.png"}`
-	authJSON     = `{"name":"will", "password":"mgx123"}`
-	access_token = ""
+	projectJSON    = `{"name":"web","description":"web版","avatar_url":"http://www.famulei.com/"}`
+	newProjectJSON = `{"name":"web_v2","description":"伐木累web版","avatar_url":"http://www.famulei.com/v2/"}`
+	authJSON       = `{"name":"will", "password":"mgx123"}`
+	access_token   = ""
+	projectID      = uint(0)
 )
 
 type CustomValidator struct {
@@ -76,90 +78,96 @@ func TestGetToken(t *testing.T) {
 		assert.Error(t, errors.New("save token error"))
 	}
 	access_token, _ = js.Get("access_token").String()
-	fmt.Println(access_token)
+	//fmt.Println(access_token)
 }
 
-func TestCreateTeam(t *testing.T) {
+func TestCreateProject(t *testing.T) {
 	// Setup
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	req := httptest.NewRequest(echo.POST, "/teams", strings.NewReader(teamJSON))
+	req := httptest.NewRequest(echo.POST, "/teams/:teamname/projects", strings.NewReader(projectJSON))
 	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
+	c.SetParamNames("teamname")
+	c.SetParamValues("famulei")
 
 	// Assertions
-	if assert.NoError(t, CreateTeam(c)) {
+	if assert.NoError(t, CreateProject(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
-		t1 := new(models.Team)
-		t2 := new(models.Team)
+		t1 := new(models.Project)
+		t2 := new(models.Project)
 		json.Unmarshal([]byte(rec.Body.String()), t2)
-		json.Unmarshal([]byte(teamJSON), t1)
+		json.Unmarshal([]byte(projectJSON), t1)
 		assert.Equal(t, t1.Name, t2.Name)
 		assert.Equal(t, t1.Description, t2.Description)
+		projectID = t2.ID
 	}
 }
 
-func TestGetTeam(t *testing.T) {
+func TestGetProject(t *testing.T) {
 	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/teams/:teamname", nil)
+	req := httptest.NewRequest(echo.GET, "/projects/:id", nil)
 	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.SetParamNames("teamname")
-	c.SetParamValues("famulei")
+	c.SetParamNames("id")
+	idstr := strconv.Itoa(int(projectID))
+	c.SetParamValues(idstr)
 
 	// Assertions
-	if assert.NoError(t, GetTeamByName(c)) {
+	if assert.NoError(t, GetProjectByID(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		t1 := new(models.Team)
-		t2 := new(models.Team)
+		t1 := new(models.Project)
+		t2 := new(models.Project)
 		json.Unmarshal([]byte(rec.Body.String()), t2)
-		json.Unmarshal([]byte(teamJSON), t1)
+		json.Unmarshal([]byte(projectJSON), t1)
 		assert.Equal(t, t1.Name, t2.Name)
 		assert.Equal(t, t1.Description, t2.Description)
 	}
 }
 
-func TestUpdateTeam(t *testing.T) {
+func TestUpdateProject(t *testing.T) {
 	// Setup
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	req := httptest.NewRequest(echo.PUT, "/", strings.NewReader(newTeamJSON))
+	req := httptest.NewRequest(echo.PUT, "/", strings.NewReader(newProjectJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.SetPath("/teams/:teamname")
-	c.SetParamNames("teamname")
-	c.SetParamValues("famulei")
+	c.SetPath("/projects/:id")
+	idstr := strconv.Itoa(int(projectID))
+	c.SetParamNames("id")
+	c.SetParamValues(idstr)
 
 	// Assertions
-	if assert.NoError(t, UpdateTeamByName(c)) {
+	if assert.NoError(t, UpdateProjectByID(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		t1 := new(models.Team)
-		t2 := new(models.Team)
+		t1 := new(models.Project)
+		t2 := new(models.Project)
 		json.Unmarshal([]byte(rec.Body.String()), t2)
-		json.Unmarshal([]byte(newTeamJSON), t1)
+		json.Unmarshal([]byte(newProjectJSON), t1)
 		assert.Equal(t, t1.Name, t2.Name)
 		assert.Equal(t, t1.Description, t2.Description)
 	}
 }
 
-func TestDeleteTeam(t *testing.T) {
+func TestDeleteProject(t *testing.T) {
 	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(echo.DELETE, "/teams/:teamname", nil)
+	req := httptest.NewRequest(echo.DELETE, "/projects/:id", nil)
 	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.SetParamNames("teamname")
-	c.SetParamValues("famulei")
+	idstr := strconv.Itoa(int(projectID))
+	c.SetParamNames("id")
+	c.SetParamValues(idstr)
 
 	// Assertions
-	if assert.NoError(t, DeleteTeamByName(c)) {
+	if assert.NoError(t, DeleteProjectByID(c)) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	}
 
