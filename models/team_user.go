@@ -1,8 +1,8 @@
 package models
 
 import (
-	//"errors"
-	"fmt"
+	"errors"
+	//"fmt"
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -29,6 +29,14 @@ func AddOrUpdateMember(teamname string, username string, role int) error {
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
 
+	if t == nil || u == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": username,
+		}).Error(err)
+		return errors.New("get team or user error")
+	}
+
 	// select
 	err := db.Where("team_id = ? and user_id = ?", t.ID, u.ID).First(tu).Error
 	tu.UserID = u.ID
@@ -36,11 +44,11 @@ func AddOrUpdateMember(teamname string, username string, role int) error {
 	tu.Role = uint(role)
 
 	err = db.Save(tu).Error
-
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("add or update member error")
+			"db": err.Error(),
+			"tu": *tu,
+		}).Error("add or update member error")
 	}
 
 	return err
@@ -49,25 +57,46 @@ func AddOrUpdateMember(teamname string, username string, role int) error {
 func RemoveMember(teamname, username string) error {
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
+
+	if t == nil || u == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": username,
+		}).Error(err)
+		return errors.New("get team or user error")
+	}
+
 	err := db.Where("team_id = ? and user_id = ?", t.ID, u.ID).Delete(TeamUser{}).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("remove member error")
+			"db":   err.Error(),
+			"team": teamname,
+			"user": username,
+		}).Error("remove member error")
 	}
+
 	return err
 }
 
 func RemoveAllMember(teamname string) error {
 	t, _ := GetTeamByName(teamname)
-	fmt.Println(t.Name)
+	if t == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+		}).Error(err)
+		return errors.New("get team error")
+	}
+
+	//fmt.Println(t.Name)
 	err := db.Where("team_id = ?", t.ID).Delete(TeamUser{}).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("remove all member error")
+			"db":   err.Error(),
+			"team": teamname,
+		}).Error("remove all member error")
 	}
-	fmt.Println(err)
+
+	//fmt.Println(err)
 	return err
 }
 
@@ -79,14 +108,24 @@ type TeamMemberInfo struct {
 func GetTeamMembers(teamname string) ([]*TeamMemberInfo, error) {
 	users := make([]*TeamMemberInfo, 0)
 	tus := make([]*TeamUser, 0)
+
 	t, _ := GetTeamByName(teamname)
+	if t == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+		}).Error(err)
+		return nil, errors.New("get team error")
+	}
+
 	err := db.Where("team_id = ?", t.ID).Find(&tus).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("get team member error")
+			"db":   err.Error(),
+			"team": teamname,
+		}).Error("get team member error")
+		return nil, errors.New("get team member error")
 	}
-	//fmt.Printf("%v", tus)
+
 	role := "reader"
 	for _, tu := range tus {
 		u, _ := GetUserByID(tu.UserID)
@@ -110,25 +149,25 @@ type UserTeams struct {
 }
 
 func GetUserTeams(username string) ([]*UserTeams, error) {
-	//fmt.Println("---------first in--------------")
 	userteams := make([]*UserTeams, 0)
 	tus := make([]*TeamUser, 0)
-	//fmt.Println("---------second in--------------")
 	u, err := GetUserByName(username)
 	if u == nil {
-		fmt.Println("---------get user error--------------")
+		log.WithFields(log.Fields{
+			"user": username,
+		}).Error(err)
 		return nil, err
 	}
-	//fmt.Println("---------third in--------------")
+
 	err = db.Where("user_id = ?", u.ID).Find(&tus).Error
 
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("get user team error")
+			"db":   err.Error(),
+			"user": username,
+		}).Error("get user team error")
+		return nil, errors.New("get user team error")
 	}
-	//fmt.Println(err)
-	//fmt.Printf("-----tus\n%v------\n", tus)
 
 	role := "reader"
 	for _, tu := range tus {
@@ -144,25 +183,31 @@ func GetUserTeams(username string) ([]*UserTeams, error) {
 		}
 		userteams = append(userteams, &UserTeams{Team: *t, Role: role})
 	}
-	fmt.Printf("userteams: %v", userteams)
+
 	return userteams, err
 }
 
 func IsTeamMaintainer(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
-	//log.Info("team: %v", t)
 	u, _ := GetUserByName(username)
-	//log.Info("user: %v", u)
+	if t == nil || u == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": username,
+		}).Error("get user or team error")
+		return false
+	}
+
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Maintainer)).First(tu).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("check user maintainer role error")
+			"db": err.Error(),
+			"tu": *tu,
+		}).Error("check user maintainer role error")
 		return false
 	}
-	//fmt.Printf("tu is %v", tu)
-	fmt.Println(err)
+
 	return true
 }
 
@@ -170,14 +215,23 @@ func IsTeamMember(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
+	if t == nil || u == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": username,
+		}).Error("get user or team error")
+		return false
+	}
+
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Member)).First(tu).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("check user member role error")
+			"db": err.Error(),
+			"tu": *tu,
+		}).Error("check user member role error")
 		return false
 	}
-	fmt.Println(err)
+
 	return true
 }
 
@@ -185,13 +239,22 @@ func IsTeamReader(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)
 	u, _ := GetUserByName(username)
+	if t == nil || u == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": username,
+		}).Error("get user or team error")
+		return false
+	}
+
 	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Reader)).First(tu).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("check user reader role error")
+			"db": err.Error(),
+			"tu": *tu,
+		}).Error("check user reader role error")
 		return false
 	}
-	fmt.Println(err)
+
 	return true
 }

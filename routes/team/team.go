@@ -1,7 +1,7 @@
 package team
 
 import (
-	"fmt"
+	//"fmt"
 	//"io/ioutil"
 	"net/http"
 	//"strconv"
@@ -31,19 +31,25 @@ func CreateTeam(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	t := new(models.Team)
 	tf := new(TeamForm)
 	if err := c.Bind(tf); err != nil {
-		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
 	}
 
 	if err := c.Validate(tf); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "request data is not right",
+			"message": "请求数据错误",
 		})
+	}
+
+	if t, _ := models.GetTeamByName(tf.Name); t != nil {
+		return c.NoContent(http.StatusConflict)
 	}
 
 	tf.ID = 0
@@ -51,39 +57,47 @@ func CreateTeam(c echo.Context) error {
 
 	username := tf.Creator
 	u, _ := models.GetUserByName(username)
-
 	if u == nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "no such user",
+			"message": "用户不存在",
 		})
 	}
 
 	if u.Name != tokenInfo.Name && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	t.Creator = u.ID
 	if err := models.CreateTeam(t); err != nil {
-		log.Error(err.Error())
+		log.WithFields(log.Fields{
+			"team": *t,
+		}).Error("create team error")
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	//fmt.Printf("%v\n", tf)
-	//fmt.Printf("%v\n", t)
+
 	copier.Copy(tf, t)
 	tf.Creator = u.Name
-	fmt.Printf("%v\n", tf)
+	//fmt.Printf("%v\n", tf)
 
 	// add creator as the team's maintainer
-	models.AddOrUpdateMember(tf.Name, username, models.Maintainer)
+	err = models.AddOrUpdateMember(tf.Name, username, models.Maintainer)
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	log.WithFields(log.Fields{
+		"team":     *t,
+		"operator": tokenInfo.Name,
+	}).Info("create team success")
 
 	return c.JSON(http.StatusCreated, tf)
 }
 
 func GetTeamByName(c echo.Context) error {
-	tokenInfo, err := jwt.GetClaims(c)
+	_, err := jwt.GetClaims(c)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
@@ -91,19 +105,19 @@ func GetTeamByName(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	name := c.Param("teamname")
 	t, err := models.GetTeamByName(name)
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.NoContent(http.StatusNotFound)
 	}
 
 	tf := new(TeamForm)
 	copier.Copy(tf, t)
 
-	fmt.Printf("%v", tf)
+	//fmt.Printf("%v", tf)
 
 	if u, err := models.GetUserByID(t.Creator); err == nil {
 		tf.Creator = u.Name
@@ -122,7 +136,7 @@ func AddOrUpdateTeamMember(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	tmf := new(struct {
 		UserName string `json:"username" validate:"required,max=20"`
@@ -131,20 +145,21 @@ func AddOrUpdateTeamMember(c echo.Context) error {
 	})
 
 	if err = c.Bind(tmf); err != nil {
-		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
 	}
 
 	if c.Request().Method == "POST" {
 		if err := c.Validate(tmf); err != nil {
-			fmt.Println(err)
+			//fmt.Println(err)
 			return c.JSON(http.StatusBadRequest, echo.Map{
-				"message": "request data is not right",
+				"message": "请求数据错误",
 			})
 		}
 	}
 
 	teamname := c.Param("teamname")
-
 	operator := tokenInfo.Name
 
 	flag := models.IsTeamMaintainer(teamname, operator)
@@ -152,7 +167,7 @@ func AddOrUpdateTeamMember(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
@@ -176,9 +191,18 @@ func AddOrUpdateTeamMember(c echo.Context) error {
 	}
 
 	if err != nil {
-		fmt.Println(err)
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": c.Param("username"),
+		}).Error("add or update team member error")
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	log.WithFields(log.Fields{
+		"team":     teamname,
+		"user":     c.Param("username"),
+		"operator": tokenInfo.Name,
+	}).Info("add or update team memeber success")
 
 	return c.JSON(http.StatusOK, tmf)
 
@@ -193,7 +217,7 @@ func RemoveTeamMember(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	teamname := c.Param("teamname")
 	username := c.Param("username")
@@ -204,21 +228,30 @@ func RemoveTeamMember(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	err = models.RemoveMember(teamname, username)
 	if err != nil {
-		fmt.Println(err)
+		log.WithFields(log.Fields{
+			"team": teamname,
+			"user": username,
+		}).Error("remove team member error")
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	log.WithFields(log.Fields{
+		"team":     teamname,
+		"user":     username,
+		"operator": tokenInfo.Name,
+	}).Info("remove team memeber success")
 
 	return c.NoContent(http.StatusNoContent)
 }
 
 func GetTeamMembers(c echo.Context) error {
-	tokenInfo, err := jwt.GetClaims(c)
+	_, err := jwt.GetClaims(c)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
@@ -226,20 +259,23 @@ func GetTeamMembers(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	teamname := c.Param("teamname")
 	users, _ := models.GetTeamMembers(teamname)
-	for _, u := range users {
-		fmt.Printf("team member %v\n", u)
+
+	if users == nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+		}).Error("get team members error")
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, users)
-
 }
 
 func GetUserTeams(c echo.Context) error {
-	tokenInfo, err := jwt.GetClaims(c)
+	_, err := jwt.GetClaims(c)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
@@ -247,16 +283,19 @@ func GetUserTeams(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	username := c.Param("username")
 	teams, _ := models.GetUserTeams(username)
-	for _, t := range teams {
-		fmt.Printf("user team %v\n", t)
+
+	if teams == nil {
+		log.WithFields(log.Fields{
+			"user": username,
+		}).Error("get user teams error")
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, teams)
-
 }
 
 func UpdateTeamByName(c echo.Context) error {
@@ -268,7 +307,7 @@ func UpdateTeamByName(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	teamname := c.Param("teamname")
 	username := tokenInfo.Name
@@ -280,7 +319,7 @@ func UpdateTeamByName(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
@@ -289,22 +328,40 @@ func UpdateTeamByName(c echo.Context) error {
 		AvatarUrl   string `json:"avatar_url"`
 	})
 
-	c.Bind(tf)
+	if err := c.Bind(tf); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
 
 	if err := c.Validate(tf); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "request data is not right",
+			"message": "请求数据错误",
 		})
 	}
 
 	t, _ := models.GetTeamByName(teamname)
-	//u, _ := models.GetUserByID(t.Creator)
+	if t == nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	if tf.AvatarUrl == "" {
+		tf.AvatarUrl = t.AvatarUrl
+	}
 	copier.Copy(t, tf)
 
 	if err := models.UpdateTeam(t); err != nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+		}).Error("update team info error")
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	log.WithFields(log.Fields{
+		"team":     *t,
+		"operator": tokenInfo.Name,
+	}).Info("update team info success")
 
 	return c.JSON(http.StatusOK, t)
 }
@@ -318,7 +375,7 @@ func DeleteTeamByName(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	teamname := c.Param("teamname")
 	username := tokenInfo.Name
@@ -328,18 +385,29 @@ func DeleteTeamByName(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	// delete all team member
-	if err = models.RemoveAllMember(teamname); err == nil {
-		fmt.Println("delete all memeber success")
+	if err = models.RemoveAllMember(teamname); err != nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+		}).Error("delete all team member error")
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	if err = models.DeleteTeamByName(teamname); err != nil {
+		log.WithFields(log.Fields{
+			"team": teamname,
+		}).Error("delete team error")
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	log.WithFields(log.Fields{
+		"team":     teamname,
+		"operator": tokenInfo.Name,
+	}).Info("delete team success")
 
 	return c.NoContent(http.StatusNoContent)
 }

@@ -1,7 +1,7 @@
 package project
 
 import (
-	"fmt"
+	//"fmt"
 	//"io/ioutil"
 	"net/http"
 	"strconv"
@@ -16,7 +16,7 @@ import (
 
 type ProjectForm struct {
 	ID          uint   `json:"id"`
-	Name        string `json:"name" validate:"required,max=100"`
+	Name        string `json:"name" validate:"required,max=20"`
 	Description string `json:"description" validate:"max=100"`
 	Creator     string `json:"creator"`
 	Team        string `json:"team"`
@@ -32,7 +32,7 @@ func CreateProject(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	teamname := c.Param("teamname")
 	username := tokenInfo.Name
@@ -42,20 +42,22 @@ func CreateProject(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	p := new(models.Project)
 	pf := new(ProjectForm)
 	if err := c.Bind(pf); err != nil {
-		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
 	}
 
 	if err := c.Validate(pf); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "request data is not right",
+			"message": "请求数据错误",
 		})
 	}
 
@@ -70,33 +72,40 @@ func CreateProject(c echo.Context) error {
 
 	if u == nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "no such user",
+			"message": "用户不存在",
 		})
 	}
 
 	if t == nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "no such team",
+			"message": "Team不存在",
 		})
 	}
 
 	p.Creator = u.ID
 	p.Team = t.ID
 	if err := models.CreateProject(p); err != nil {
-		log.Error(err.Error())
+		log.WithFields(log.Fields{
+			"project":  *p,
+			"operator": username,
+		}).Error("create project fail")
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	//fmt.Printf("%v\n", tf)
-	//fmt.Printf("%v\n", t)
+
 	copier.Copy(pf, p)
-	//fmt.Printf("%v\n", tf)
 	pf.Creator = u.Name
 	pf.Team = t.Name
+
+	log.WithFields(log.Fields{
+		"project":  *p,
+		"operator": username,
+	}).Info("create project success")
+
 	return c.JSON(http.StatusCreated, pf)
 }
 
 func GetProjectByID(c echo.Context) error {
-	tokenInfo, err := jwt.GetClaims(c)
+	_, err := jwt.GetClaims(c)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
@@ -104,33 +113,42 @@ func GetProjectByID(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	idint, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "id must be int",
+				"message": "ID必须是整数",
 			})
 	}
+
 	p, err := models.GetProjectByID(uint(idint))
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.NoContent(http.StatusNotFound)
 	}
 
 	pf := new(ProjectForm)
 	copier.Copy(pf, p)
 
-	fmt.Printf("%v", pf)
+	//fmt.Printf("%v", pf)
 
 	if u, err := models.GetUserByID(p.Creator); err == nil {
 		pf.Creator = u.Name
+	} else {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"message": "用户不存在",
+		})
 	}
 
 	if t, err := models.GetTeamByID(p.Team); err == nil {
 		pf.Team = t.Name
+	} else {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"message": "Team不存在",
+		})
 	}
 
 	if pf.Creator != "" && pf.Team != "" {
@@ -149,20 +167,34 @@ func UpdateProjectByID(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	idint, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "id must be int",
+				"message": "ID必须是整数",
 			})
 	}
 
 	p, err := models.GetProjectByID(uint(idint))
 
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
 	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		log.WithFields(log.Fields{
+			"project": *p,
+		}).Error("project's team is not exist")
+
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
 	teamname := t.Name
 	username := tokenInfo.Name
 
@@ -171,24 +203,29 @@ func UpdateProjectByID(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	puf := new(struct {
-		Name        string `json:"name" validate:"required,max=100"`
+		Name        string `json:"name" validate:"required,max=20"`
 		Description string `json:"description" validate:"max=100"`
 		AvatarUrl   string `json:"avatar_url"`
 	})
 
 	//pf := new(ProjectForm)
 
-	c.Bind(puf)
+	if err := c.Bind(puf); err != nil {
+		//fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
 
 	if err := c.Validate(puf); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "request data is not right",
+			"message": "请求数据错误",
 		})
 	}
 
@@ -202,6 +239,11 @@ func UpdateProjectByID(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	log.WithFields(log.Fields{
+		"project":  *p,
+		"operator": tokenInfo.Name,
+	}).Info("update project info success")
+
 	return c.JSON(http.StatusOK, p)
 }
 
@@ -214,34 +256,52 @@ func DeleteProjectByID(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	idint, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "id must be int",
+				"message": "ID必须是整数",
 			})
 	}
+
 	p, err := models.GetProjectByID(uint(idint))
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
 
 	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		log.WithFields(log.Fields{
+			"project": *p,
+		}).Error("project's team is not exist")
+
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
 	teamname := t.Name
 	username := tokenInfo.Name
 
 	flag := models.IsTeamMaintainer(teamname, username)
-
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	if err = models.DeleteProjectByID(uint(idint)); err != nil {
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	log.WithFields(log.Fields{
+		"project":  *p,
+		"operator": tokenInfo.Name,
+	}).Info("delete project success")
 
 	return c.NoContent(http.StatusNoContent)
 }

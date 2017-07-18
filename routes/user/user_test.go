@@ -20,11 +20,15 @@ import (
 )
 
 var (
-	userJSON         = `{"name":"will","nickname":"毛广献","password":"mgx123","avatar_url":"http://ojz1mcltu.bkt.clouddn.com/animals-august2015.jpg"}`
-	newUserJSON      = `{"name":"will","nickname":"毛","password":"mgx123","avatar_url":"http://ojz1mcltu.bkt.clouddn.com/animals-august2015.jpg"}`
-	authJSON         = `{"name":"will", "password":"mgx123"}`
-	restPasswordJson = `{"old_password":"mgx123","new_password":"will123"}`
-	access_token     = ""
+	userJSON            = `{"name":"will","nickname":"毛广献","password":"mgx123","avatar_url":"http://ojz1mcltu.bkt.clouddn.com/animals-august2015.jpg"}`
+	badUserJSON         = `{"name":"will","nickname":"毛广献","password":"mgx"}`
+	newUserJSON         = `{"name":"will","nickname":"毛","password":"mgx123","avatar_url":"http://ojz1mcltu.bkt.clouddn.com/animals-august2015.jpg"}`
+	newBadUserJSON      = `{"name":"will","nickname":"111111111122222222223"}`
+	authJSON            = `{"name":"will", "password":"mgx123"}`
+	badAuthJSON         = `{"name":"will", "password":"mgx"}`
+	restPasswordJson    = `{"old_password":"mgx123","new_password":"will123"}`
+	badRestPasswordJson = `{"old_password":"qwerty","new_password":"will123"}`
+	access_token        = ""
 )
 
 type CustomValidator struct {
@@ -55,6 +59,7 @@ func init() {
 	jwt.JwtInint()
 }
 
+// normal request
 func TestCreateUser(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -76,6 +81,23 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
+// bad request
+func TestBadCreateUser(t *testing.T) {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/users", strings.NewReader(badUserJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Assertions
+	if assert.NoError(t, CreateUser(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+}
+
+// normal request
 func TestGetToken(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -100,6 +122,23 @@ func TestGetToken(t *testing.T) {
 	fmt.Println(access_token)
 }
 
+// bad request
+func TestBadGetToken(t *testing.T) {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/oauth2/token", strings.NewReader(badAuthJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Assertions
+	if assert.NoError(t, GetToken(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+}
+
+// normal request
 func TestGetUser(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -124,9 +163,30 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
+// bad request
+func TestBadGetUser(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	//req.Header.Set(echo.HeaderAuthorization, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/users/:username")
+	c.SetParamNames("username")
+	c.SetParamValues("willmgx")
+
+	// Assertions
+	if assert.NoError(t, GetUserByName(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	}
+}
+
+// normal request
 func TestUpdateUser(t *testing.T) {
 	// Setup
 	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
 	req := httptest.NewRequest(echo.PUT, "/", strings.NewReader(newUserJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
@@ -148,6 +208,27 @@ func TestUpdateUser(t *testing.T) {
 	}
 }
 
+// bad request
+func TestBadUpdateUser(t *testing.T) {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.PUT, "/", strings.NewReader(newBadUserJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/users/:username")
+	c.SetParamNames("username")
+	c.SetParamValues("will")
+
+	// Assertions
+	if assert.NoError(t, UpdateUserByName(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+}
+
+// normal request
 func TestChangeUserPassword(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -166,6 +247,26 @@ func TestChangeUserPassword(t *testing.T) {
 	}
 }
 
+// bad request
+func TestBadChangeUserPassword(t *testing.T) {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/users/:username/change_password", strings.NewReader(badRestPasswordJson))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("username")
+	c.SetParamValues("will")
+
+	// Assertions
+	if assert.NoError(t, ChangeUserPassword(c)) {
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	}
+}
+
+// normal request
 func TestDeleteUser(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -180,6 +281,27 @@ func TestDeleteUser(t *testing.T) {
 	// Assertions
 	if assert.NoError(t, DeleteUserByName(c)) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
+	}
+
+	// delete user table
+	// models.DB.DropTableIfExists(&models.User{})
+}
+
+// bad request
+func TestBadDeleteUser(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(echo.DELETE, "/users/:username", nil)
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	//req.Header.Set(echo.HeaderAuthorization, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("username")
+	c.SetParamValues("will")
+
+	// Assertions
+	if assert.NoError(t, DeleteUserByName(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
 
 	// delete user table

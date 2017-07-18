@@ -17,6 +17,8 @@ import (
 	"github.com/will835559313/apiman/pkg/jwt"
 	"github.com/will835559313/apiman/pkg/log"
 	"github.com/will835559313/apiman/pkg/setting"
+	"github.com/will835559313/apiman/routes/project"
+	"github.com/will835559313/apiman/routes/team"
 	"github.com/will835559313/apiman/routes/user"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -27,6 +29,10 @@ var (
 	authJSON        = `{"name":"will", "password":"mgx123"}`
 	access_token    = ""
 	apigroupID      = uint(0)
+
+	userJSON    = `{"name":"will","nickname":"毛广献","password":"mgx123","avatar_url":"http://ojz1mcltu.bkt.clouddn.com/animals-august2015.jpg"}`
+	teamJSON    = `{"name":"famulei","description":"team","creator":"will","avatar_url":"http://www.famulei.com/images/index_v4/slogan.png"}`
+	projectJSON = `{"name":"web","description":"web版","avatar_url":"http://www.famulei.com/"}`
 )
 
 type CustomValidator struct {
@@ -57,7 +63,49 @@ func init() {
 	jwt.JwtInint()
 }
 
+func createUser() {
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/users", strings.NewReader(userJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	user.CreateUser(c)
+}
+
+func createTeam() {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/teams", strings.NewReader(teamJSON))
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	team.CreateTeam(c)
+}
+
+func createProject() {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/teams/:teamname/projects", strings.NewReader(projectJSON))
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("teamname")
+	c.SetParamValues("famulei")
+
+	project.CreateProject(c)
+}
+
 func TestGetToken(t *testing.T) {
+	// create user
+	createUser()
+
 	// Setup
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
@@ -82,6 +130,12 @@ func TestGetToken(t *testing.T) {
 }
 
 func TestCreateApiGroup(t *testing.T) {
+	// create team
+	createTeam()
+
+	// create project
+	createProject()
+
 	// Setup
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
@@ -91,7 +145,7 @@ func TestCreateApiGroup(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetParamNames("id")
-	c.SetParamValues("2")
+	c.SetParamValues("1")
 
 	// Assertions
 	if assert.NoError(t, CreateApiGroup(c)) {

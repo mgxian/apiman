@@ -20,14 +20,19 @@ type Project struct {
 	//DeletedAt   *time.Time `json:"-"`
 }
 
-func CreateProject(t *Project) error {
-	err := db.Create(t).Error
+func CreateProject(p *Project) error {
+	err := db.Create(p).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("create project error")
+			"db":      err.Error(),
+			"project": *p,
+		}).Error("create project error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"project": *p,
+	}).Info("create project success")
 
 	return nil
 }
@@ -37,22 +42,28 @@ func GetProjectByID(id uint) (*Project, error) {
 	err := db.First(p, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("get project error")
+			"db": err.Error(),
+			"id": id,
+		}).Error("get project error")
 		return nil, err
 	}
 
 	return p, nil
 }
 
-func UpdateProject(t *Project) error {
-	err := db.Model(t).Updates(t).Error
+func UpdateProject(p *Project) error {
+	err := db.Model(p).Updates(p).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("update project error")
+			"db":      err.Error(),
+			"project": *p,
+		}).Error("update project error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"project": *p,
+	}).Info("update project success")
 
 	return nil
 }
@@ -61,8 +72,9 @@ func DeleteProjectByID(id uint) error {
 	err := db.Where("id = ?", id).Delete(Project{}).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("delete project error")
+			"db": err.Error(),
+			"id": id,
+		}).Error("delete project error")
 		return err
 	}
 

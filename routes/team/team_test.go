@@ -25,6 +25,11 @@ var (
 	newTeamJSON  = `{"name":"famulei","description":"a great team","avatar_url":"http://www.famulei.com/images/index_v3/slogan.png"}`
 	authJSON     = `{"name":"will", "password":"mgx123"}`
 	access_token = ""
+
+	badTeamJSON    = `{"name":"famulei111111111111122222222222222222222","description":"team","creator":"will"}`
+	badNewTeamJSON = `{"name":"famulei","description":"a great team"}`
+
+	userJSON = `{"name":"will","nickname":"毛广献","password":"mgx123","avatar_url":"http://ojz1mcltu.bkt.clouddn.com/animals-august2015.jpg"}`
 )
 
 type CustomValidator struct {
@@ -55,7 +60,21 @@ func init() {
 	jwt.JwtInint()
 }
 
+func createUser() {
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/users", strings.NewReader(userJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	user.CreateUser(c)
+}
+
 func TestGetToken(t *testing.T) {
+	// create user
+	createUser()
+
 	// Setup
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
@@ -101,6 +120,23 @@ func TestCreateTeam(t *testing.T) {
 	}
 }
 
+// bad request
+func TestBadCreateTeam(t *testing.T) {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.POST, "/teams", strings.NewReader(badTeamJSON))
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Assertions
+	if assert.NoError(t, CreateTeam(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+}
+
 func TestGetTeam(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -120,6 +156,23 @@ func TestGetTeam(t *testing.T) {
 		json.Unmarshal([]byte(teamJSON), t1)
 		assert.Equal(t, t1.Name, t2.Name)
 		assert.Equal(t, t1.Description, t2.Description)
+	}
+}
+
+// bad request
+func TestBadGetTeam(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/teams/:teamname", nil)
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("teamname")
+	c.SetParamValues("weoriqwp")
+
+	// Assertions
+	if assert.NoError(t, GetTeamByName(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
 }
 
@@ -148,6 +201,26 @@ func TestUpdateTeam(t *testing.T) {
 	}
 }
 
+// bad request
+func TestBadUpdateTeam(t *testing.T) {
+	// Setup
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+	req := httptest.NewRequest(echo.PUT, "/", strings.NewReader(badNewTeamJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	//req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/teams/:teamname")
+	c.SetParamNames("teamname")
+	c.SetParamValues("famulei")
+
+	// Assertions
+	if assert.NoError(t, UpdateTeamByName(c)) {
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	}
+}
+
 func TestDeleteTeam(t *testing.T) {
 	// Setup
 	e := echo.New()
@@ -161,6 +234,26 @@ func TestDeleteTeam(t *testing.T) {
 	// Assertions
 	if assert.NoError(t, DeleteTeamByName(c)) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
+	}
+
+	// delete team table
+	// models.DB.DropTableIfExists(&models.Team{})
+}
+
+// bad request
+func TestBadDeleteTeam(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(echo.DELETE, "/teams/:teamname", nil)
+	req.Header.Set(echo.HeaderAuthorization, "Bearer "+access_token)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("teamname")
+	c.SetParamValues("famulei")
+
+	// Assertions
+	if assert.NoError(t, DeleteTeamByName(c)) {
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
 	}
 
 	// delete team table

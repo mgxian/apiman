@@ -1,14 +1,14 @@
 package apigroup
 
 import (
-	"fmt"
+	//"fmt"
 	//"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/jinzhu/copier"
 	"github.com/labstack/echo"
-	//log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/jwt"
 	//"gopkg.in/go-playground/validator.v9"
@@ -31,15 +31,32 @@ func CreateApiGroup(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	intstr, _ := strconv.Atoi(id)
 	username := tokenInfo.Name
 
 	p, _ := models.GetProjectByID(uint(intstr))
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
 	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
 	u, _ := models.GetUserByName(username)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "用户不存在",
+		})
+	}
 
 	teamname := t.Name
 	//projectname := p.Name
@@ -53,19 +70,24 @@ func CreateApiGroup(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	ag := new(models.ApiGroup)
 	agf := new(ApiGroupForm)
 
-	c.Bind(agf)
+	if err := c.Bind(agf); err != nil {
+		//fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
 
 	if err := c.Validate(agf); err != nil {
-		fmt.Println(err)
+		//fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "request data is not right",
+			"message": "请求数据错误",
 		})
 	}
 
@@ -74,14 +96,24 @@ func CreateApiGroup(c echo.Context) error {
 	ag.Creator = u.ID
 	ag.Project = p.ID
 
-	if err := models.CreateApiGroup(ag); err == nil {
-		agf.ID = ag.ID
-		agf.Creator = u.Name
-		agf.Project = p.Name
-		return c.JSON(http.StatusCreated, agf)
+	if err := models.CreateApiGroup(ag); err != nil {
+		log.WithFields(log.Fields{
+			"apigroup": *ag,
+			"operator": username,
+		}).Error("create apigroup fail")
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.NoContent(http.StatusInternalServerError)
+	agf.ID = ag.ID
+	agf.Creator = u.Name
+	agf.Project = p.Name
+
+	log.WithFields(log.Fields{
+		"apigroup": *ag,
+		"operator": username,
+	}).Info("create apigroup success")
+
+	return c.JSON(http.StatusCreated, agf)
 }
 
 func GetApiGroupByID(c echo.Context) error {
@@ -93,15 +125,38 @@ func GetApiGroupByID(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	intstr, _ := strconv.Atoi(id)
 
 	a, _ := models.GetApiGroupByID(uint(intstr))
+	if a == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api group不存在",
+		})
+	}
+
 	p, _ := models.GetProjectByID(a.Project)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
 	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
 	u, _ := models.GetUserByID(a.Creator)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "user不存在",
+		})
+	}
 
 	username := tokenInfo.Name
 	teamname := t.Name
@@ -119,19 +174,16 @@ func GetApiGroupByID(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
-	if ag, err := models.GetApiGroupByID(uint(intstr)); err == nil {
-		agf := new(ApiGroupForm)
-		copier.Copy(agf, ag)
-		agf.Creator = u.Name
-		agf.Project = p.Name
-		return c.JSON(http.StatusOK, agf)
-	}
+	agf := new(ApiGroupForm)
+	copier.Copy(agf, a)
+	agf.Creator = u.Name
+	agf.Project = p.Name
 
-	return c.NoContent(http.StatusInternalServerError)
+	return c.JSON(http.StatusOK, agf)
 }
 
 func UpdateApiGroupByID(c echo.Context) error {
@@ -143,19 +195,41 @@ func UpdateApiGroupByID(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	intstr, _ := strconv.Atoi(id)
 	username := tokenInfo.Name
 
 	ag, _ := models.GetApiGroupByID(uint(intstr))
+	if ag == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api group不存在",
+		})
+	}
+
 	p, _ := models.GetProjectByID(ag.Project)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
 	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
 	u, _ := models.GetUserByID(ag.Creator)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "user不存在",
+		})
+	}
 
 	teamname := t.Name
-	//projectname := p.Name
 
 	flag := models.IsTeamMaintainer(teamname, username)
 
@@ -166,7 +240,7 @@ func UpdateApiGroupByID(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
@@ -176,21 +250,24 @@ func UpdateApiGroupByID(c echo.Context) error {
 	})
 
 	if err := c.Bind(aguf); err != nil {
-		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
 	}
 
 	if err := c.Validate(aguf); err != nil {
-		fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "request data is not right",
+			"message": "请求数据错误",
 		})
 	}
 
 	copier.Copy(ag, aguf)
 
-	fmt.Printf("ag:--------%v-------------", ag)
-
 	if err := models.UpdateApiGroup(ag); err != nil {
+		log.WithFields(log.Fields{
+			"apigroup": *ag,
+			"operator": username,
+		}).Error("update apigroup info fail")
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
@@ -198,6 +275,12 @@ func UpdateApiGroupByID(c echo.Context) error {
 	copier.Copy(agf, ag)
 	agf.Creator = u.Name
 	agf.Project = p.Name
+
+	log.WithFields(log.Fields{
+		"apigroup": *ag,
+		"operator": username,
+	}).Error("update apigroup success")
+
 	return c.JSON(http.StatusOK, agf)
 }
 
@@ -210,14 +293,31 @@ func DeleteApiGroupByID(c echo.Context) error {
 			})
 	}
 
-	fmt.Println(tokenInfo.Name)
+	//fmt.Println(tokenInfo.Name)
 
 	id := c.Param("id")
 	intstr, _ := strconv.Atoi(id)
 
 	ag, _ := models.GetApiGroupByID(uint(intstr))
+	if ag == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api group不存在",
+		})
+	}
+
 	p, _ := models.GetProjectByID(ag.Project)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
 	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
 
 	username := tokenInfo.Name
 	teamname := t.Name
@@ -231,13 +331,21 @@ func DeleteApiGroupByID(c echo.Context) error {
 	if !flag && !tokenInfo.Admin {
 		return c.JSON(http.StatusUnauthorized,
 			echo.Map{
-				"message": "you have not this permisson",
+				"message": "你没有此权限",
 			})
 	}
 
 	if err := models.DeleteApiGroupByID(uint(intstr)); err != nil {
+		log.WithFields(log.Fields{
+			"apigroup": *ag,
+			"operator": username,
+		}).Error("delete apigroup fail")
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	log.WithFields(log.Fields{
+		"apigroup": *ag,
+		"operator": username,
+	}).Error("delete apigroup success")
 	return c.NoContent(http.StatusNoContent)
 }

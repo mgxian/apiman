@@ -24,10 +24,15 @@ func CreateTeam(t *Team) error {
 	err := db.Create(t).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("create team error")
+			"db":   err.Error(),
+			"team": *t,
+		}).Error("create team error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"team": *t,
+	}).Info("create team success")
 
 	return nil
 }
@@ -37,8 +42,9 @@ func GetTeamByName(name string) (*Team, error) {
 	err := db.Where("name = ?", name).First(t).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("get team error")
+			"db":   err.Error(),
+			"name": name,
+		}).Error("get team error")
 		return nil, err
 	}
 
@@ -50,9 +56,9 @@ func GetTeamByID(id uint) (*Team, error) {
 	err := db.First(t, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql":   err.Error(),
-			"team_id": id,
-		}).Info("get team error")
+			"db": err.Error(),
+			"id": id,
+		}).Error("get team error")
 		return nil, err
 	}
 
@@ -63,10 +69,14 @@ func UpdateTeam(t *Team) error {
 	err := db.Model(t).Updates(t).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("update team error")
+			"db": err.Error(),
+		}).Error("update team error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"team": *t,
+	}).Info("update team success")
 
 	return nil
 }
@@ -75,8 +85,9 @@ func DeleteTeamByName(name string) error {
 	err := db.Where("name = ?", name).Delete(Team{}).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("delete team error")
+			"db":   err.Error(),
+			"name": name,
+		}).Error("delete team error")
 		return err
 	}
 

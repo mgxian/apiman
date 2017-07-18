@@ -75,16 +75,16 @@ func ParseToken(tokenString string) (*jwtCustomClaims, error) {
 func GetClaims(c echo.Context) (*jwtCustomClaims, error) {
 	auth := c.Request().Header.Get("Authorization")
 	if len(auth) < 8 {
-		return nil, errors.New("need token in header")
+		return nil, errors.New("请添加token请求头")
 	}
 	token := auth[7:]
 	fmt.Println(token)
 	claims, err := ParseToken(token)
 	if err != nil {
 		if strings.Contains(err.Error(), "expire") {
-			return nil, errors.New("token expired")
+			return nil, errors.New("token已过期")
 		}
-		return nil, errors.New("token error")
+		return nil, errors.New("token错误")
 	}
 	return claims, err
 }

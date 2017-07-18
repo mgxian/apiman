@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	//"fmt"
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -29,10 +29,16 @@ func CreateUser(u *User) error {
 	err := db.Create(u).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("create user error")
+			"db":   err.Error(),
+			"user": *u,
+		}).Error("create user error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"user": *u,
+	}).Info("create user success")
+
 	return nil
 }
 
@@ -41,27 +47,28 @@ func GetUserByID(id uint) (*User, error) {
 	err := db.First(u, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("get user error")
-		return nil, errors.New("id not find in users")
+			"db": err.Error(),
+			"id": id,
+		}).Error("get user error")
+		return nil, err
 	}
 	return u, nil
 }
 
 func GetUserByName(name string) (*User, error) {
 	u := new(User)
-	fmt.Println(name)
+	//fmt.Println(name)
 
 	err := db.Where("name = ?", name).First(u).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql":    err.Error(),
-			"username": name,
-		}).Info("get user error")
-		fmt.Println(err)
-		return nil, errors.New("name not find in users")
+			"db":   err.Error(),
+			"name": name,
+		}).Error("get user error")
+		//fmt.Println(err)
+		return nil, err
 	}
-	fmt.Printf("user: %v", u)
+	//fmt.Printf("user: %v", u)
 	return u, nil
 }
 
@@ -72,19 +79,36 @@ func UpdateUser(u *User) error {
 	err := db.Model(u).Updates(u).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("update user error")
+			"db":   err.Error(),
+			"user": *u,
+		}).Error("update user error")
 	}
+
+	log.WithFields(log.Fields{
+		"user": *u,
+	}).Info("update user success")
+
 	return err
 }
 
 func DeleteUserByUsername(name string) error {
 	u, err := GetUserByName(name)
+	if u == nil {
+		//fmt.Println(u)
+		//fmt.Println(err)
+		log.WithFields(log.Fields{
+			"db":       err.Error(),
+			"username": name,
+		}).Error("get user error")
+		return err
+	}
+
 	err = db.Delete(u).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("delete user error")
+			"db":   err.Error(),
+			"user": *u,
+		}).Error("delete user error")
 	}
 	return err
 }
@@ -104,36 +128,50 @@ func getPassord(str string) (string, error) {
 func checkPassword(id uint, str string) bool {
 	hash, err := getPassord(str)
 	if err != nil {
-		log.Error("get password error")
+		log.WithFields(log.Fields{
+			"password": str,
+		}).Error("gen password error")
 		return false
 	}
+
 	u := new(User)
 	err = db.Select("password").First(u, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"id": id,
-		}).Info("no such user")
+			"id":       id,
+			"password": str,
+		}).Error("get user password error")
 		return false
 	}
+
 	if u.Password == hash {
 		return true
 	}
+
 	return false
 }
 
 func setPassword(id uint, str string) error {
 	hash, err := getPassord(str)
 	if err != nil {
-		log.Error("get password error")
-		return errors.New("get password error")
+		log.WithFields(log.Fields{
+			"password": str,
+		}).Error("gen password error")
+		return err
 	}
+
 	u := new(User)
 	u.Password = hash
 	u.ID = id
 	err = db.Model(u).Updates(u).Error
 	if err != nil {
+		log.WithFields(log.Fields{
+			"id":       id,
+			"password": str,
+		}).Error("set user password error")
 		return err
 	}
+
 	return nil
 }
 
@@ -147,19 +185,38 @@ func ChangeUserPassword(oldPassword, newPassword string, id uint) error {
 
 func GetToken(name, password string) (string, error) {
 	u, _ := GetUserByName(name)
+	if u == nil {
+		log.WithFields(log.Fields{
+			"name":     name,
+			"password": password,
+		}).Error("get user error")
+
+		return "", errors.New("get user error")
+	}
+
 	if checkPassword(u.ID, password) {
 		t, err := jwt.GetToken(u.Name, false)
 		if err != nil {
 			return "", err
 		}
+
 		data, err := jwt.ParseToken(t)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"name":     name,
+				"password": password,
+			}).Error(err)
+			return "", errors.New("parse token error")
+		}
+
 		log.WithFields(log.Fields{
 			"token":     t,
 			"username":  data.Name,
 			"is_admin":  data.Admin,
 			"expire_at": data.StandardClaims.ExpiresAt,
-		}).Info("jwt parse")
+		}).Info("jwt parse success")
 		return t, nil
 	}
+
 	return "", errors.New("username or password is not right")
 }

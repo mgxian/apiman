@@ -23,10 +23,15 @@ func CreateApiGroup(apigroup *ApiGroup) error {
 	err := db.Create(apigroup).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("create api group error")
+			"db":       err.Error(),
+			"apigroup": *apigroup,
+		}).Error("create api group error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"apigroup": *apigroup,
+	}).Info("create api group success")
 
 	return nil
 }
@@ -36,8 +41,9 @@ func GetApiGroupByID(id uint) (*ApiGroup, error) {
 	err := db.First(apigroup, id).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("get api group error")
+			"db": err.Error(),
+			"id": id,
+		}).Error("get api group error")
 		return nil, err
 	}
 
@@ -48,10 +54,15 @@ func UpdateApiGroup(apigroup *ApiGroup) error {
 	err := db.Model(apigroup).Updates(apigroup).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("update api group error")
+			"db":       err.Error(),
+			"apigroup": *apigroup,
+		}).Error("update api group error")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"apigroup": *apigroup,
+	}).Info("update api group success")
 
 	return nil
 }
@@ -60,8 +71,9 @@ func DeleteApiGroupByID(id uint) error {
 	err := db.Where("id = ?", id).Delete(ApiGroup{}).Error
 	if err != nil {
 		log.WithFields(log.Fields{
-			"mysql": err.Error(),
-		}).Info("delete api group error")
+			"db": err.Error(),
+			"id": id,
+		}).Error("delete api group error")
 		return err
 	}
 
