@@ -27,13 +27,13 @@ func LoggerInit() {
 		case "error":
 			log.SetLevel(log.ErrorLevel)
 		default:
-			log.Info("unsport log level user default info")
+			log.Warning("unsport log level user default info")
 			log.SetLevel(log.InfoLevel)
 		}
 
 		// set log file
 		log.SetOutput(file)
 	} else {
-		log.Info("Failed to log to file, using default stderr")
+		log.Warning("Failed to log to file, using default stderr")
 	}
 }

@@ -3,11 +3,11 @@ package cmd
 import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	//log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/will835559313/apiman/models"
-	"github.com/will835559313/apiman/pkg/log"
-	//"github.com/will835559313/apiman/pkg/myvalidator"
 	"github.com/will835559313/apiman/pkg/jwt"
+	mylog "github.com/will835559313/apiman/pkg/log"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
 	"github.com/will835559313/apiman/routes/apigroup"
@@ -58,7 +58,7 @@ func runWeb(c *cli.Context) error {
 	setting.NewConfig()
 
 	// set logger
-	log.LoggerInit()
+	mylog.LoggerInit()
 
 	// get db connection
 	models.Dbinit()
@@ -108,6 +108,8 @@ func runWeb(c *cli.Context) error {
 
 	// api
 
+	// log start
 	e.Logger.Fatal(e.Start(address))
+
 	return nil
 }

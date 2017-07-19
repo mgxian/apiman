@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -30,7 +31,7 @@ func WorkDir() (string, error) {
 	AppPath, err := execPath()
 	//fmt.Println(AppPath)
 	if err != nil {
-		println("app path error")
+		log.Error("app path error")
 	}
 	AppPath = strings.Replace(AppPath, "\\", "/", -1)
 
@@ -44,23 +45,23 @@ func WorkDir() (string, error) {
 func NewConfig() {
 	workdir, err := WorkDir()
 	if err != nil {
-		println("workdir error in newconfig")
+		log.Error("workdir error in newconfig")
 	}
 	if len(Conf) == 0 {
 		//println("conf len 0")
 		Conf = workdir + "/conf/app.conf"
 	}
-	println(Conf)
+	log.Info(Conf)
 	Cfg, err = ini.Load(Conf)
 	if err != nil {
-		println("ini load error")
+		log.Error("ini load error")
 	}
 
 	if len(CustomConf) == 0 {
 		//println("customconf len 0")
 		CustomConf = workdir + "/conf/custom.app.conf"
 	}
-	println(CustomConf)
+	log.Info(CustomConf)
 	Cfg.Append(CustomConf)
 	//sec := Cfg.Section("database")
 	//names := sec.Key("type").String()

@@ -2,9 +2,10 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/will835559313/apiman/cmd"
 )
@@ -12,7 +13,8 @@ import (
 const APP_VER = "0.0.1"
 
 func main() {
-	fmt.Println(APP_VER)
+	//fmt.Println(APP_VER)
+	log.Info(APP_VER)
 	app := cli.NewApp()
 	app.Name = "apiman"
 	app.Usage = "api manager"
