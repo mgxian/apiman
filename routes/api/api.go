@@ -167,6 +167,111 @@ func CreateApi(c echo.Context) error {
 	return c.JSON(http.StatusCreated, apif)
 }
 
+func GetApi(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	api_idstr := c.Param("id")
+	api_id, _ := strconv.Atoi(api_idstr)
+
+	api := new(ApiForm)
+
+	// get base info
+	apiBaseInfo, _ := models.GetApiByID(uint(api_id))
+	if apiBaseInfo == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "API不存在",
+		})
+	}
+
+	copier.Copy(api, apiBaseInfo)
+	u, _ := models.GetUserByID(apiBaseInfo.Creator)
+	api.Creator = u.Name
+
+	// get header
+	requestHeaders, _ := models.GetApiRequestHeadersByID(uint(api_id))
+	responseHeaders, _ := models.GetApiResponseHeadersByID(uint(api_id))
+
+	//fmt.Printf("----%v", requestHeaders)
+	fmt.Println(tokenInfo.Name)
+
+	api.Request.RequestHeaders = requestHeaders
+	api.Response.ResponseHeaders = responseHeaders
+
+	// get parameter
+	req := getRequestParameters(api.ID, uint(0))
+	resp := getResponseParameters(api.ID, uint(0))
+	api.Request.RequestParameters = req
+	api.Response.ResponseParameters = resp
+
+	return c.JSONPretty(http.StatusOK, api, "  ")
+}
+
+func getRequestParameters(api_id, p_id uint) []*RequestParameters {
+	rps_m, _ := models.GetRequestHeadersByID(api_id, p_id)
+	if len(rps_m) == 0 {
+		//fmt.Println("-----------rps_m nil-----------------")
+		return make([]*RequestParameters, 0)
+	}
+
+	//fmt.Printf("%v", rps_m)
+
+	rps := make([]*RequestParameters, 0)
+	for _, rp := range rps_m {
+		t := new(RequestParameters)
+		copier.Copy(t, rp)
+		rps = append(rps, t)
+	}
+
+	if len(rps) == 0 {
+		//fmt.Println("-----------rps nil-----------------")
+		return make([]*RequestParameters, 0)
+	}
+
+	for _, rp := range rps {
+		//fmt.Printf("%v", rp)
+		rps_t := getRequestParameters(api_id, rp.ID)
+		rp.SubParameters = rps_t
+	}
+
+	return rps
+}
+
+func getResponseParameters(api_id, p_id uint) []*ResponseParameters {
+	rps_m, _ := models.GetResponseHeadersByID(api_id, p_id)
+	if len(rps_m) == 0 {
+		//fmt.Println("-----------rps_m nil-----------------")
+		return make([]*ResponseParameters, 0)
+	}
+
+	//fmt.Printf("%v", rps_m)
+
+	rps := make([]*ResponseParameters, 0)
+	for _, rp := range rps_m {
+		t := new(ResponseParameters)
+		copier.Copy(t, rp)
+		rps = append(rps, t)
+	}
+
+	if len(rps) == 0 {
+		//fmt.Println("-----------rps nil-----------------")
+		return make([]*ResponseParameters, 0)
+	}
+
+	for _, rp := range rps {
+		//fmt.Printf("%v", rp)
+		rps_t := getResponseParameters(api_id, rp.ID)
+		rp.SubParameters = rps_t
+	}
+
+	return rps
+}
+
 func saveApi(api *ApiForm, create bool) error {
 	// save api base info
 	apiBaseInfo := new(models.Api)
@@ -238,7 +343,7 @@ func saveRequestParameters(rps []*RequestParameters, p_id uint, api_id uint) err
 		requestParameter.ID = 0
 		requestParameter.ApiID = api_id
 		requestParameter.ParentID = p_id
-		fmt.Printf("-------%v\n", requestParameter)
+		//fmt.Printf("-------%v\n", requestParameter)
 		if err := models.CreateRequestParameter(requestParameter); err != nil {
 			return err
 		}
@@ -261,7 +366,7 @@ func saveResponseParameters(rps []*ResponseParameters, p_id uint, api_id uint) e
 		responseParameter.ID = 0
 		responseParameter.ApiID = api_id
 		responseParameter.ParentID = p_id
-		fmt.Printf("-------%v\n", responseParameter)
+		//fmt.Printf("-------%v\n", responseParameter)
 		if err := models.CreateResponseParameter(responseParameter); err != nil {
 			return err
 		}

@@ -108,7 +108,7 @@ func runWeb(c *cli.Context) error {
 	e.DELETE("/apigroups/:id", apigroup.DeleteApiGroupByID)
 
 	// api
-	e.GET("/apis/:id", api.TestApi)
+	e.GET("/apis/:id", api.GetApi)
 	e.POST("/apigroups/:id/apis", api.CreateApi)
 
 	// log start

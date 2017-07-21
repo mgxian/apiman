@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	//"errors"
 	"time"
 
@@ -203,6 +204,17 @@ func CreateRequestHeader(requestHeader *RequestHeader) error {
 	return nil
 }
 
+func GetApiRequestHeadersByID(id uint) ([]*RequestHeader, error) {
+	rhs := make([]*RequestHeader, 0)
+	err := db.Where("api_id = ?", id).Find(&rhs).Error
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	return rhs, nil
+}
+
 func GetRequestHeaderByID(id uint) (*RequestHeader, error) {
 	requestHeader := new(RequestHeader)
 	err := db.First(requestHeader, id).Error
@@ -280,6 +292,17 @@ func CreateResponseHeader(responseHeader *ResponseHeader) error {
 	}).Info("create responseHeader success")
 
 	return nil
+}
+
+func GetApiResponseHeadersByID(id uint) ([]*ResponseHeader, error) {
+	rhs := make([]*ResponseHeader, 0)
+	err := db.Where("api_id = ?", id).Find(&rhs).Error
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	return rhs, nil
 }
 
 func GetResponseHeaderByID(id uint) (*ResponseHeader, error) {
@@ -361,6 +384,16 @@ func CreateRequestParameter(requestParameter *RequestParameter) error {
 	return nil
 }
 
+func GetRequestHeadersByID(api_id, parent_id uint) ([]*RequestParameter, error) {
+	rps := make([]*RequestParameter, 0)
+	err := db.Where("api_id = ? and parent_id = ?", api_id, parent_id).Find(&rps).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rps, nil
+}
+
 func GetRequestParameterByID(id uint) (*RequestParameter, error) {
 	requestParameter := new(RequestParameter)
 	err := db.First(requestParameter, id).Error
@@ -438,6 +471,16 @@ func CreateResponseParameter(responseParameter *ResponseParameter) error {
 	}).Info("create response parameter success")
 
 	return nil
+}
+
+func GetResponseHeadersByID(api_id, parent_id uint) ([]*ResponseParameter, error) {
+	rps := make([]*ResponseParameter, 0)
+	err := db.Where("api_id = ? and parent_id = ?", api_id, parent_id).Find(&rps).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rps, nil
 }
 
 func GetResponseParameterByID(id uint) (*ResponseParameter, error) {
