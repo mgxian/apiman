@@ -58,4 +58,5 @@ func Dbinit() {
 func DbMigrate() {
 	mysql := DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8")
 	mysql.AutoMigrate(&User{}, &Team{}, &Project{}, &TeamUser{}, &ApiGroup{})
+	mysql.AutoMigrate(&Api{}, &RequestHeader{}, &ResponseHeader{}, &RequestParameter{}, &ResponseParameter{})
 }

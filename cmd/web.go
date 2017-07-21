@@ -10,6 +10,7 @@ import (
 	mylog "github.com/will835559313/apiman/pkg/log"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
+	"github.com/will835559313/apiman/routes/api"
 	"github.com/will835559313/apiman/routes/apigroup"
 	"github.com/will835559313/apiman/routes/project"
 	"github.com/will835559313/apiman/routes/team"
@@ -107,6 +108,8 @@ func runWeb(c *cli.Context) error {
 	e.DELETE("/apigroups/:id", apigroup.DeleteApiGroupByID)
 
 	// api
+	e.GET("/apis/:id", api.TestApi)
+	e.POST("/apigroups/:id/apis", api.CreateApi)
 
 	// log start
 	e.Logger.Fatal(e.Start(address))
