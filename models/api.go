@@ -108,13 +108,18 @@ type ResponseParameter struct {
 }
 
 // api
-func CreateApi(api *Api) error {
-	err := db.Create(api).Error
+func CreateOrUpdateApi(api *Api) error {
+	//err := db.Create(api).Error
+	err := db.Save(api).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"db":  err.Error(),
 			"api": *api,
 		}).Error("create api error")
+		return err
+	}
+
+	if err := DeleteApiRequestInfoByID(api.ID); err != nil {
 		return err
 	}
 
@@ -165,6 +170,28 @@ func DeleteApiByID(id uint) error {
 		}).Error("delete api error")
 		return err
 	}
+
+	if err := DeleteApiRequestInfoByID(id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteApiRequestInfoByID(id uint) error {
+	tx := db.Begin()
+	tx.Where("api_id = ?", id).Delete(RequestHeader{})
+	tx.Where("api_id = ?", id).Delete(RequestParameter{})
+	tx.Where("api_id = ?", id).Delete(ResponseHeader{})
+	tx.Where("api_id = ?", id).Delete(ResponseParameter{})
+	if err := tx.Commit().Error; err != nil {
+		log.WithFields(log.Fields{
+			"db": err.Error(),
+		}).Error("delete api request info fail")
+		return err
+	}
+
+	log.Info("delete api request info success")
 
 	return nil
 }

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	//"io/ioutil"
 	"net/http"
@@ -10,7 +10,7 @@ import (
 	"github.com/jinzhu/copier"
 	//"github.com/bitly/go-simplejson"
 	"github.com/labstack/echo"
-	//log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/jwt"
 )
@@ -46,65 +46,6 @@ type ApiForm struct {
 type ApiData struct {
 	models.Api
 	RequestForm
-}
-
-func TestApi(c echo.Context) error {
-	// set base info
-	api := new(ApiForm)
-	api.ID = 1
-	api.Name = "用户"
-	api.Method = models.GET
-	api.Protocol = models.HTTP
-	api.URI = "/users"
-
-	// set header
-	h1 := new(models.RequestHeader)
-	h1.ApiID = 1
-	h1.Name = "Authorization"
-	h1.Value = "Bearer eyJhbGciOiJI"
-	h1.ID = 1
-	h1.Description = "认证信息"
-
-	h2 := new(models.ResponseHeader)
-	h2.ApiID = 1
-	h2.Name = "Content-Type"
-	h2.Value = "application/json"
-	h2.ID = 2
-	h2.Description = "数据响应的格式"
-
-	api.Request.RequestHeaders = make([]*models.RequestHeader, 0)
-	api.Response.ResponseHeaders = make([]*models.ResponseHeader, 0)
-
-	api.Request.RequestHeaders = append(api.Request.RequestHeaders, h1)
-	api.Response.ResponseHeaders = append(api.Response.ResponseHeaders, h2)
-
-	// set request parameter
-	resp1 := new(ResponseParameters)
-	resp1.ApiID = 1
-	resp1.ID = 1
-	resp1.Name = "users"
-	resp1.ParentID = 0
-	resp1.Required = true
-	resp1.Type = models.ArrayObject
-	resp1.Remark = "用户集合"
-
-	resp2 := new(ResponseParameters)
-	resp2.ApiID = 1
-	resp2.ID = 2
-	resp2.Name = "username"
-	resp2.ParentID = 1
-	resp2.Required = true
-	resp2.Type = models.String
-	resp2.Remark = "用户名"
-
-	resp1.SubParameters = append(resp1.SubParameters, resp2)
-
-	api.Request.RequestParameters = make([]*RequestParameters, 0)
-	api.Response.ResponseParameters = append(api.Response.ResponseParameters, resp1)
-
-	s, _ := json.Marshal(resp1)
-	fmt.Printf("%s", s)
-	return c.JSON(http.StatusOK, api)
 }
 
 func CreateApi(c echo.Context) error {
@@ -155,14 +96,47 @@ func CreateApi(c echo.Context) error {
 		})
 	}
 
+	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	//username := tokenInfo.Name
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
 	userid := strconv.Itoa(int(u.ID))
 	apif.Creator = userid
 	apif.Group = g.ID
 	apif.Project = p.ID
 
-	if err := saveApi(apif, true); err != nil {
+	err = saveApi(apif, true)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"operator": tokenInfo.Name,
+			"error":    err.Error(),
+		}).Info("create or update api fail")
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	log.WithFields(log.Fields{
+		"operator": tokenInfo.Name,
+		"api":      *apif,
+	}).Info("create or update api success")
 
 	return c.JSON(http.StatusCreated, apif)
 }
@@ -189,19 +163,60 @@ func GetApi(c echo.Context) error {
 		})
 	}
 
+	username := tokenInfo.Name
+	u, _ := models.GetUserByName(username)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "用户不存在",
+		})
+	}
+
+	p, _ := models.GetProjectByID(apiBaseInfo.Project)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "项目不存在",
+		})
+	}
+
+	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	//username := tokenInfo.Name
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag {
+		flag = models.IsTeamReader(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
 	copier.Copy(api, apiBaseInfo)
-	u, _ := models.GetUserByID(apiBaseInfo.Creator)
-	api.Creator = u.Name
+	ac, _ := models.GetUserByID(apiBaseInfo.Creator)
+	api.Creator = ac.Name
 
 	// get header
 	requestHeaders, _ := models.GetApiRequestHeadersByID(uint(api_id))
 	responseHeaders, _ := models.GetApiResponseHeadersByID(uint(api_id))
-
-	//fmt.Printf("----%v", requestHeaders)
-	fmt.Println(tokenInfo.Name)
-
 	api.Request.RequestHeaders = requestHeaders
 	api.Response.ResponseHeaders = responseHeaders
+
+	//fmt.Printf("----%v", requestHeaders)
+	//fmt.Println(tokenInfo.Name)
 
 	// get parameter
 	req := getRequestParameters(api.ID, uint(0))
@@ -210,6 +225,171 @@ func GetApi(c echo.Context) error {
 	api.Response.ResponseParameters = resp
 
 	return c.JSONPretty(http.StatusOK, api, "  ")
+}
+
+func UpdateApi(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	apif := new(ApiForm)
+	if err := c.Bind(apif); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	if err := c.Validate(apif); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	api_id := c.Param("id")
+	api_idstr, _ := strconv.Atoi(api_id)
+	apif.ID = uint(api_idstr)
+
+	api, _ := models.GetApiByID(uint(api_idstr))
+	if api == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api不存在",
+		})
+	}
+
+	g, _ := models.GetApiGroupByID(api.Group)
+	if g == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api group不存在",
+		})
+	}
+
+	username := tokenInfo.Name
+
+	p, _ := models.GetProjectByID(g.Project)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "项目不存在",
+		})
+	}
+
+	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	//username := tokenInfo.Name
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	apif.ID = api.ID
+	apif.CreatedAt = api.CreatedAt
+	apif.Creator = strconv.Itoa(int(api.Creator))
+	apif.Group = api.Group
+	apif.Project = api.Project
+
+	err = saveApi(apif, false)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"operator": tokenInfo.Name,
+			"error":    err.Error(),
+		}).Info("update api fail")
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	log.WithFields(log.Fields{
+		"operator": tokenInfo.Name,
+		"api":      *apif,
+	}).Info("update api success")
+
+	return c.JSON(http.StatusCreated, apif)
+}
+
+func DeleteApi(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	//fmt.Println(tokenInfo.Name)
+
+	id := c.Param("id")
+	intstr, _ := strconv.Atoi(id)
+
+	api, _ := models.GetApiByID(uint(intstr))
+	if api == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api不存在",
+		})
+	}
+
+	p, _ := models.GetProjectByID(api.Project)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
+	t, _ := models.GetTeamByID(p.Team)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	username := tokenInfo.Name
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	if err := models.DeleteApiByID(uint(intstr)); err != nil {
+		log.WithFields(log.Fields{
+			"operator": username,
+			"error":    err.Error(),
+			"api":      *api,
+		}).Error("delete api fail")
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	log.WithFields(log.Fields{
+		"api":      *api,
+		"operator": username,
+	}).Error("delete api success")
+	return c.NoContent(http.StatusNoContent)
 }
 
 func getRequestParameters(api_id, p_id uint) []*RequestParameters {
@@ -283,50 +463,46 @@ func saveApi(api *ApiForm, create bool) error {
 	userid, _ := strconv.Atoi(api.Creator)
 	apiBaseInfo.Creator = uint(userid)
 
-	if err := models.CreateApi(apiBaseInfo); err != nil {
+	if err := models.CreateOrUpdateApi(apiBaseInfo); err != nil {
 		return err
 	}
 
 	// save header
 	for _, rh := range api.Request.RequestHeaders {
 		//copier.Copy(apiRequestHeader, rh)
-		if create {
-			rh.ID = 0
-			rh.ApiID = apiBaseInfo.ID
-		} else {
-			rh.ApiID = 0
-		}
+		rh.ID = 0
+		rh.ApiID = apiBaseInfo.ID
 
 		//fmt.Printf("%v", rh)
 	}
 
 	if err := models.BatchCreateRequestHeader(api.Request.RequestHeaders); err != nil {
 		fmt.Print(err)
+		return err
 	}
 
 	for _, rh := range api.Response.ResponseHeaders {
 		//copier.Copy(apiResponseHeader, rh)
-		if create {
-			rh.ID = 0
-			rh.ApiID = apiBaseInfo.ID
-		} else {
-			rh.ApiID = 0
-		}
+		rh.ID = 0
+		rh.ApiID = apiBaseInfo.ID
 
 		//fmt.Printf("%v", rh)
 	}
 
 	if err := models.BatchCreateResponseHeader(api.Response.ResponseHeaders); err != nil {
 		fmt.Print(err)
+		return err
 	}
 
 	// save parameter
 	if err := saveRequestParameters(api.Request.RequestParameters, uint(0), apiBaseInfo.ID); err != nil {
 		fmt.Print(err)
+		return err
 	}
 
 	if err := saveResponseParameters(api.Response.ResponseParameters, uint(0), apiBaseInfo.ID); err != nil {
 		fmt.Print(err)
+		return err
 	}
 
 	return nil
@@ -377,26 +553,3 @@ func saveResponseParameters(rps []*ResponseParameters, p_id uint, api_id uint) e
 
 	return nil
 }
-
-//func GetJson(c echo.Context) error {
-//	apiJson := `{"id":1,"name":"用户","description":"","creator":0,"project":0,"group":0,"uri":"/users","Protocol":1,"Method":1,"request":{"headers":[{"id":1,"name":"Authorization","value":"Bearer eyJhbGciOiJI","description":"认证信息","api_id":1}],"parameters":[]},"response":{"headers":[{"id":2,"name":"Content-Type","value":"application/json","description":"数据响应的格式","remark":"","api_id":1}],"parameters":[{"id":1,"name":"users","value":"","type":7,"required":true,"description":"","remark":"用户集合","api_id":1,"parent_id":0,"sub_parameter":[{"id":2,"name":"username","value":"","type":2,"required":true,"description":"","remark":"用户名","api_id":1,"parent_id":1,"sub_parameter":null}]}]}}`
-//	//return c.JSON(http.StatusOK, )
-
-//	js, err := simplejson.NewJson([]byte(apiJson))
-//	if err != nil {
-//		fmt.Println("error")
-//	}
-
-//	responseJson := js.Get("response").Get("parameters")
-//	if responseJson == nil {
-//		fmt.Println("error")
-//	}
-
-//	parameters, _ := responseJson.Array()
-
-//	for _, p := range parameters {
-//		fmt.Println(p)
-//	}
-
-//	return c.JSON(http.StatusOK, parameters)
-//}
