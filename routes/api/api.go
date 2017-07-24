@@ -37,14 +37,22 @@ type RequestForm struct {
 	} `json:"response"`
 }
 
-type ApiForm struct {
+type ApiBaseInfo struct {
 	models.Api
-	RequestForm
 	Creator string `json:"creator" validate:"required,max=20"`
 }
 
+type ApiForm struct {
+	ApiBaseInfo `json:"base_info"`
+	RequestForm
+}
+
+type ApiBaseInfoForm struct {
+	ApiBaseInfo `json:"base_info"`
+}
+
 type ApiData struct {
-	models.Api
+	ApiBaseInfo `json:"base_info"`
 	RequestForm
 }
 
@@ -138,7 +146,13 @@ func CreateApi(c echo.Context) error {
 		"api":      *apif,
 	}).Info("create or update api success")
 
-	return c.JSON(http.StatusCreated, apif)
+	apif.Creator = u.Name
+
+	if err := getRequestInfo(apif); err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSONPretty(http.StatusCreated, apif, "  ")
 }
 
 func GetApi(c echo.Context) error {
@@ -209,9 +223,17 @@ func GetApi(c echo.Context) error {
 	ac, _ := models.GetUserByID(apiBaseInfo.Creator)
 	api.Creator = ac.Name
 
+	if err := getRequestInfo(api); err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSONPretty(http.StatusOK, api, "  ")
+}
+
+func getRequestInfo(api *ApiForm) error {
 	// get header
-	requestHeaders, _ := models.GetApiRequestHeadersByID(uint(api_id))
-	responseHeaders, _ := models.GetApiResponseHeadersByID(uint(api_id))
+	requestHeaders, _ := models.GetApiRequestHeadersByID(api.ID)
+	responseHeaders, _ := models.GetApiResponseHeadersByID(api.ID)
 	api.Request.RequestHeaders = requestHeaders
 	api.Response.ResponseHeaders = responseHeaders
 
@@ -224,7 +246,7 @@ func GetApi(c echo.Context) error {
 	api.Request.RequestParameters = req
 	api.Response.ResponseParameters = resp
 
-	return c.JSONPretty(http.StatusOK, api, "  ")
+	return nil
 }
 
 func UpdateApi(c echo.Context) error {
@@ -237,6 +259,7 @@ func UpdateApi(c echo.Context) error {
 	}
 
 	apif := new(ApiForm)
+
 	if err := c.Bind(apif); err != nil {
 		fmt.Println(err)
 		return c.JSON(http.StatusBadRequest, echo.Map{
@@ -307,7 +330,19 @@ func UpdateApi(c echo.Context) error {
 	apif.Group = api.Group
 	apif.Project = api.Project
 
-	err = saveApi(apif, false)
+	req_len := len(apif.Request.RequestHeaders) + len(apif.Request.RequestParameters)
+	res_len := len(apif.Response.ResponseHeaders) + len(apif.Response.ResponseParameters)
+	r_len := req_len + res_len
+	fmt.Println(r_len)
+
+	if r_len == 0 {
+		apiBaseInfo := new(models.Api)
+		copier.Copy(apiBaseInfo, apif)
+		apiBaseInfo.Creator = api.Creator
+		models.UpdateApi(apiBaseInfo)
+	} else {
+		err = saveApi(apif, false)
+	}
 
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -322,7 +357,16 @@ func UpdateApi(c echo.Context) error {
 		"api":      *apif,
 	}).Info("update api success")
 
-	return c.JSON(http.StatusCreated, apif)
+	u, _ := models.GetUserByID(api.Creator)
+	if u != nil {
+		apif.Creator = u.Name
+	}
+
+	if err := getRequestInfo(apif); err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSONPretty(http.StatusCreated, apif, "  ")
 }
 
 func DeleteApi(c echo.Context) error {
@@ -466,6 +510,8 @@ func saveApi(api *ApiForm, create bool) error {
 	if err := models.CreateOrUpdateApi(apiBaseInfo); err != nil {
 		return err
 	}
+
+	api.ID = apiBaseInfo.ID
 
 	// save header
 	for _, rh := range api.Request.RequestHeaders {
