@@ -1,9 +1,7 @@
 package api
 
 import (
-	//"encoding/json"
 	"fmt"
-	//"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -152,7 +150,7 @@ func CreateApi(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSONPretty(http.StatusCreated, apif, "  ")
+	return c.JSON(http.StatusCreated, apif)
 }
 
 func GetApi(c echo.Context) error {
@@ -227,7 +225,7 @@ func GetApi(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSONPretty(http.StatusOK, api, "  ")
+	return c.JSON(http.StatusOK, api)
 }
 
 func getRequestInfo(api *ApiForm) error {
@@ -330,10 +328,12 @@ func UpdateApi(c echo.Context) error {
 	apif.Group = api.Group
 	apif.Project = api.Project
 
-	req_len := len(apif.Request.RequestHeaders) + len(apif.Request.RequestParameters)
-	res_len := len(apif.Response.ResponseHeaders) + len(apif.Response.ResponseParameters)
+	req_len := len(apif.Request.RequestHeaders) +
+		len(apif.Request.RequestParameters)
+	res_len := len(apif.Response.ResponseHeaders) +
+		len(apif.Response.ResponseParameters)
 	r_len := req_len + res_len
-	fmt.Println(r_len)
+	//fmt.Println(r_len)
 
 	if r_len == 0 {
 		apiBaseInfo := new(models.Api)
@@ -366,7 +366,7 @@ func UpdateApi(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSONPretty(http.StatusCreated, apif, "  ")
+	return c.JSON(http.StatusOK, apif)
 }
 
 func DeleteApi(c echo.Context) error {
