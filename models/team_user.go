@@ -187,6 +187,40 @@ func GetUserTeams(username string) ([]*UserTeams, error) {
 	return userteams, err
 }
 
+func GetTeamMemberByID(teamname, username string) (*TeamMemberInfo, error) {
+	u, _ := GetUserByName(username)
+	if u == nil {
+		return nil, errors.New("no such user")
+	}
+
+	t, _ := GetTeamByName(teamname)
+	if t == nil {
+		return nil, errors.New("no such team")
+	}
+
+	tu := new(TeamUser)
+	err := db.Where("team_id =? and user_id = ?", t.ID, u.ID).First(tu).Error
+	if err != nil {
+		return nil, err
+	}
+
+	//tm := new(TeamMemberInfo)
+	role := "reader"
+	switch tu.Role {
+	case Maintainer:
+		role = "maintainer"
+	case Member:
+		role = "member"
+	case Reader:
+		role = "reader"
+	default:
+	}
+
+	//u, _ = GetUserByID(user_id)
+
+	return &TeamMemberInfo{User: *u, Role: role}, nil
+}
+
 func IsTeamMaintainer(teamname, username string) bool {
 	tu := new(TeamUser)
 	t, _ := GetTeamByName(teamname)

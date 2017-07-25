@@ -93,3 +93,13 @@ func DeleteTeamByName(name string) error {
 
 	return nil
 }
+
+func GetTeamProjets(team_id uint) ([]*Project, error) {
+	tps := make([]*Project, 0)
+	err := db.Where("team = ?", team_id).Find(&tps).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return tps, nil
+}

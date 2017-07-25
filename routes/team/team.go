@@ -411,3 +411,95 @@ func DeleteTeamByName(c echo.Context) error {
 
 	return c.NoContent(http.StatusNoContent)
 }
+
+func GetTeamMember(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	operator := tokenInfo.Name
+	username := c.Param("username")
+	teamname := c.Param("teamname")
+
+	t, _ := models.GetTeamByName(teamname)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	flag := models.IsTeamMaintainer(teamname, operator)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, operator)
+	}
+
+	if !flag {
+		flag = models.IsTeamReader(teamname, operator)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	tm, _ := models.GetTeamMemberByID(teamname, username)
+
+	if tm == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "成员不存在",
+		})
+	}
+
+	return c.JSON(http.StatusOK, tm)
+}
+
+func GetTeamProjets(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	operator := tokenInfo.Name
+	teamname := c.Param("teamname")
+
+	t, _ := models.GetTeamByName(teamname)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	flag := models.IsTeamMaintainer(teamname, operator)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, operator)
+	}
+
+	if !flag {
+		flag = models.IsTeamReader(teamname, operator)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	tps, _ := models.GetTeamProjets(t.ID)
+	if len(tps) == 0 {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	return c.JSON(http.StatusOK, tps)
+}

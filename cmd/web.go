@@ -80,6 +80,7 @@ func runWeb(c *cli.Context) error {
 	e.PUT("/users/:username", user.UpdateUserByName)
 	e.DELETE("/users/:username", user.DeleteUserByName)
 	e.POST("/users/:username/change_password", user.ChangeUserPassword)
+	e.GET("/users/:username/teams", team.GetUserTeams)
 
 	// token
 	e.POST("/oauth2/token", user.GetToken)
@@ -93,7 +94,8 @@ func runWeb(c *cli.Context) error {
 	e.DELETE("/teams/:teamname/members/:username", team.RemoveTeamMember)
 	e.PUT("/teams/:teamname/members/:username", team.AddOrUpdateTeamMember)
 	e.GET("/teams/:teamname/members", team.GetTeamMembers)
-	e.GET("/users/:username/teams", team.GetUserTeams)
+	e.GET("/teams/:teamname/members/:username", team.GetTeamMember)
+	e.GET("/teams/:teamname/projects", team.GetTeamProjets)
 
 	// project
 	e.POST("/teams/:teamname/projects", project.CreateProject)
