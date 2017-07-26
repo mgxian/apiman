@@ -13,7 +13,7 @@ import (
 )
 
 type UserForm struct {
-	Name      string `json:"name" validate:"required"`
+	Name      string `json:"name" validate:"required,max=20"`
 	Nickname  string `json:"nickname" validate:"required,max=20"`
 	Password  string `json:"password" validate:"required,min=6"`
 	AvatarUrl string `json:"avatar_url"`
@@ -294,4 +294,53 @@ func GetToken(c echo.Context) error {
 	return c.JSON(http.StatusCreated, echo.Map{
 		"access_token": token,
 	})
+}
+
+func GetUserTeams(c echo.Context) error {
+	_, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	//fmt.Println(tokenInfo.Name)
+
+	username := c.Param("username")
+	teams, _ := models.GetUserTeams(username)
+
+	if teams == nil {
+		log.WithFields(log.Fields{
+			"user": username,
+		}).Error("get user teams error")
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, teams)
+}
+
+func GetUserProjects(c echo.Context) error {
+	_, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	//fmt.Println(tokenInfo.Name)
+
+	username := c.Param("username")
+
+	u, _ := models.GetUserByName(username)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "用户不存在",
+		})
+	}
+
+	ps, _ := models.GetUserProjects(u.ID)
+
+	return c.JSON(http.StatusOK, ps)
 }

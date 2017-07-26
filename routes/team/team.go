@@ -70,7 +70,7 @@ func CreateTeam(c echo.Context) error {
 			})
 	}
 
-	t.Creator = u.ID
+	t.CreatorID = u.ID
 	if err := models.CreateTeam(t); err != nil {
 		log.WithFields(log.Fields{
 			"team": *t,
@@ -119,7 +119,7 @@ func GetTeamByName(c echo.Context) error {
 
 	//fmt.Printf("%v", tf)
 
-	if u, err := models.GetUserByID(t.Creator); err == nil {
+	if u, err := models.GetUserByID(t.CreatorID); err == nil {
 		tf.Creator = u.Name
 		return c.JSON(http.StatusOK, tf)
 	}
@@ -272,30 +272,6 @@ func GetTeamMembers(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, users)
-}
-
-func GetUserTeams(c echo.Context) error {
-	_, err := jwt.GetClaims(c)
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized,
-			echo.Map{
-				"message": err.Error(),
-			})
-	}
-
-	//fmt.Println(tokenInfo.Name)
-
-	username := c.Param("username")
-	teams, _ := models.GetUserTeams(username)
-
-	if teams == nil {
-		log.WithFields(log.Fields{
-			"user": username,
-		}).Error("get user teams error")
-		return c.NoContent(http.StatusInternalServerError)
-	}
-
-	return c.JSON(http.StatusOK, teams)
 }
 
 func UpdateTeamByName(c echo.Context) error {

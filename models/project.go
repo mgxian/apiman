@@ -14,8 +14,8 @@ type Project struct {
 	UpdatedAt   time.Time `json:"-"`
 	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description"`
-	Creator     uint      `json:"creator" gorm:"default 0"`
-	Team        uint      `json:"team" gorm:"default 0"`
+	CreatorID   uint      `json:"creator" gorm:"default 0"`
+	TeamID      uint      `json:"team" gorm:"default 0"`
 	AvatarUrl   string    `json:"avatar_url"`
 	//DeletedAt   *time.Time `json:"-"`
 }
@@ -79,4 +79,64 @@ func DeleteProjectByID(id uint) error {
 	}
 
 	return nil
+}
+
+func MigrateProjectByID(p_id, team_id uint) error {
+	p := new(Project)
+	p.ID = p_id
+	p.TeamID = team_id
+	err := db.Model(p).Updates(p).Error
+	if err != nil {
+		log.WithFields(log.Fields{
+			"db":      err.Error(),
+			"project": *p,
+		}).Error("migrate project error")
+		return err
+	}
+
+	log.WithFields(log.Fields{
+		"project": *p,
+	}).Info("migrate project success")
+
+	return nil
+}
+
+func GetProjectApis(p_id uint) ([]*Apis, error) {
+	//fmt.Println(p_id)
+	apis := make([]*Apis, 0)
+	err := db.Where("project_id = ?", p_id).Find(&apis).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, api := range apis {
+		u, _ := GetUserByID(api.CreatorID)
+		api.Creator = u.Name
+	}
+
+	return apis, nil
+}
+
+type ApiGroups struct {
+	ApiGroup
+	Creator string `json:"creator"`
+}
+
+func (ApiGroups) TableName() string {
+	return "api_groups"
+}
+
+func GetProjectApiGroups(p_id uint) ([]*ApiGroups, error) {
+	api_groups := make([]*ApiGroups, 0)
+	err := db.Where("project_id = ?", p_id).Find(&api_groups).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, api_group := range api_groups {
+		u, _ := GetUserByID(api_group.CreatorID)
+		api_group.Creator = u.Name
+	}
+
+	return api_groups, nil
 }

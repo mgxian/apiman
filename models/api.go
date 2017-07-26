@@ -48,9 +48,9 @@ type Api struct {
 	UpdatedAt   time.Time `json:"-"`
 	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description" validate:"max=100"`
-	Creator     uint      `json:"creator" gorm:"default:0"`
-	Project     uint      `json:"project" gorm:"default:0"`
-	Group       uint      `json:"group" gorm:"default:0"`
+	CreatorID   uint      `json:"creator" gorm:"default:0"`
+	ProjectID   uint      `json:"project" gorm:"default:0"`
+	GroupID     uint      `json:"group" gorm:"default:0"`
 	URI         string    `json:"uri" gorm:"not null" validate:"required,max=100"`
 	Protocol    uint      `json:"protocol" validate:"required,max=20"`
 	Method      uint      `json:"method" validate:"required,max=20"`

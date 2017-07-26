@@ -13,7 +13,7 @@ type Team struct {
 	CreatedAt   time.Time `json:"-"`
 	UpdatedAt   time.Time `json:"-"`
 	Name        string    `json:"name" gorm:"not null;unique"`
-	Creator     uint      `json:"creator" gorm:"not null"`
+	CreatorID   uint      `json:"creator" gorm:"not null"`
 	Description string    `json:"description"`
 	AvatarUrl   string    `json:"avatar_url"`
 	//DeletedAt   *time.Time `json:"-"`
@@ -94,11 +94,28 @@ func DeleteTeamByName(name string) error {
 	return nil
 }
 
-func GetTeamProjets(team_id uint) ([]*Project, error) {
-	tps := make([]*Project, 0)
-	err := db.Where("team = ?", team_id).Find(&tps).Error
+type Projects struct {
+	Project
+	Creator string `json:"creator"`
+	Team    string `json:"team"`
+}
+
+func (Projects) TableName() string {
+	return "projects"
+}
+
+func GetTeamProjets(team_id uint) ([]*Projects, error) {
+	tps := make([]*Projects, 0)
+	err := db.Where("team_id = ?", team_id).Find(&tps).Error
 	if err != nil {
 		return nil, err
+	}
+
+	for _, tp := range tps {
+		u, _ := GetUserByID(tp.CreatorID)
+		t, _ := GetTeamByID(tp.TeamID)
+		tp.Creator = u.Name
+		tp.Team = t.Name
 	}
 
 	return tps, nil

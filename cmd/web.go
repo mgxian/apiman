@@ -80,7 +80,8 @@ func runWeb(c *cli.Context) error {
 	e.PUT("/users/:username", user.UpdateUserByName)
 	e.DELETE("/users/:username", user.DeleteUserByName)
 	e.POST("/users/:username/change_password", user.ChangeUserPassword)
-	e.GET("/users/:username/teams", team.GetUserTeams)
+	e.GET("/users/:username/teams", user.GetUserTeams)
+	e.GET("/users/:username/projects", user.GetUserProjects)
 
 	// token
 	e.POST("/oauth2/token", user.GetToken)
@@ -102,12 +103,16 @@ func runWeb(c *cli.Context) error {
 	e.GET("/projects/:id", project.GetProjectByID)
 	e.PUT("/projects/:id", project.UpdateProjectByID)
 	e.DELETE("/projects/:id", project.DeleteProjectByID)
+	e.POST("/projects/:id/migrate", project.MigrateProjectByID)
+	e.GET("/projects/:id/apis", project.GetProjectApis)
+	e.GET("/projects/:id/apigroups", project.GetProjectApiGroups)
 
 	// apigroup
 	e.POST("/projects/:id/apigroups", apigroup.CreateApiGroup)
 	e.GET("/apigroups/:id", apigroup.GetApiGroupByID)
 	e.PUT("/apigroups/:id", apigroup.UpdateApiGroupByID)
 	e.DELETE("/apigroups/:id", apigroup.DeleteApiGroupByID)
+	e.GET("/apigroups/:id/apis", apigroup.GetApiGroupApis)
 
 	// api
 	e.POST("/apigroups/:id/apis", api.CreateApi)

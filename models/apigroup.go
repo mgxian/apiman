@@ -1,6 +1,7 @@
 package models
 
 import (
+	//"fmt"
 	//"errors"
 	"time"
 
@@ -14,8 +15,8 @@ type ApiGroup struct {
 	UpdatedAt   time.Time `json:"-"`
 	Name        string    `json:"name" gorm:"not null"`
 	Description string    `json:"description"`
-	Creator     uint      `json:"creator" gorm:"default 0"`
-	Project     uint      `json:"project" gorm:"default 0"`
+	CreatorID   uint      `json:"creator" gorm:"default 0"`
+	ProjectID   uint      `json:"project" gorm:"default 0"`
 	//DeletedAt   *time.Time `json:"-"`
 }
 
@@ -78,4 +79,29 @@ func DeleteApiGroupByID(id uint) error {
 	}
 
 	return nil
+}
+
+type Apis struct {
+	Api
+	Creator string `json:"creator"`
+}
+
+func (Apis) TableName() string {
+	return "apis"
+}
+
+func GetApiGroupApis(ag_id uint) ([]*Apis, error) {
+	//fmt.Println(ag_id)
+	apis := make([]*Apis, 0)
+	err := db.Where("group_id = ?", ag_id).Find(&apis).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, api := range apis {
+		u, _ := GetUserByID(api.CreatorID)
+		api.Creator = u.Name
+	}
+
+	return apis, nil
 }

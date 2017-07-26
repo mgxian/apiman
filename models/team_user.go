@@ -15,7 +15,7 @@ type TeamUser struct {
 	UpdatedAt time.Time `json:"-"`
 	TeamID    uint      `gorm:"not null"`
 	UserID    uint      `gorm:"not null"`
-	Role      uint      `gorm:"not null"`
+	RoleID    uint      `gorm:"not null"`
 }
 
 const (
@@ -41,7 +41,7 @@ func AddOrUpdateMember(teamname string, username string, role int) error {
 	err := db.Where("team_id = ? and user_id = ?", t.ID, u.ID).First(tu).Error
 	tu.UserID = u.ID
 	tu.TeamID = t.ID
-	tu.Role = uint(role)
+	tu.RoleID = uint(role)
 
 	err = db.Save(tu).Error
 	if err != nil {
@@ -129,7 +129,7 @@ func GetTeamMembers(teamname string) ([]*TeamMemberInfo, error) {
 	role := "reader"
 	for _, tu := range tus {
 		u, _ := GetUserByID(tu.UserID)
-		switch tu.Role {
+		switch tu.RoleID {
 		case Maintainer:
 			role = "maintainer"
 		case Member:
@@ -141,50 +141,6 @@ func GetTeamMembers(teamname string) ([]*TeamMemberInfo, error) {
 		users = append(users, &TeamMemberInfo{User: *u, Role: role})
 	}
 	return users, err
-}
-
-type UserTeams struct {
-	Team
-	Role string `json:"role"`
-}
-
-func GetUserTeams(username string) ([]*UserTeams, error) {
-	userteams := make([]*UserTeams, 0)
-	tus := make([]*TeamUser, 0)
-	u, err := GetUserByName(username)
-	if u == nil {
-		log.WithFields(log.Fields{
-			"user": username,
-		}).Error(err)
-		return nil, err
-	}
-
-	err = db.Where("user_id = ?", u.ID).Find(&tus).Error
-
-	if err != nil {
-		log.WithFields(log.Fields{
-			"db":   err.Error(),
-			"user": username,
-		}).Error("get user team error")
-		return nil, errors.New("get user team error")
-	}
-
-	role := "reader"
-	for _, tu := range tus {
-		t, _ := GetTeamByID(tu.TeamID)
-		switch tu.Role {
-		case Maintainer:
-			role = "maintainer"
-		case Member:
-			role = "member"
-		case Reader:
-			role = "reader"
-		default:
-		}
-		userteams = append(userteams, &UserTeams{Team: *t, Role: role})
-	}
-
-	return userteams, err
 }
 
 func GetTeamMemberByID(teamname, username string) (*TeamMemberInfo, error) {
@@ -206,7 +162,7 @@ func GetTeamMemberByID(teamname, username string) (*TeamMemberInfo, error) {
 
 	//tm := new(TeamMemberInfo)
 	role := "reader"
-	switch tu.Role {
+	switch tu.RoleID {
 	case Maintainer:
 		role = "maintainer"
 	case Member:
@@ -233,7 +189,7 @@ func IsTeamMaintainer(teamname, username string) bool {
 		return false
 	}
 
-	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Maintainer)).First(tu).Error
+	err := db.Where("team_id = ? and user_id = ? and role_id = ?", t.ID, u.ID, uint(Maintainer)).First(tu).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"db": err.Error(),
@@ -257,7 +213,7 @@ func IsTeamMember(teamname, username string) bool {
 		return false
 	}
 
-	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Member)).First(tu).Error
+	err := db.Where("team_id = ? and user_id = ? and role_id = ?", t.ID, u.ID, uint(Member)).First(tu).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"db": err.Error(),
@@ -281,7 +237,7 @@ func IsTeamReader(teamname, username string) bool {
 		return false
 	}
 
-	err := db.Where("team_id = ? and user_id = ? and role = ?", t.ID, u.ID, uint(Reader)).First(tu).Error
+	err := db.Where("team_id = ? and user_id = ? and role_id = ?", t.ID, u.ID, uint(Reader)).First(tu).Error
 	if err != nil {
 		log.WithFields(log.Fields{
 			"db": err.Error(),

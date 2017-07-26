@@ -1,8 +1,6 @@
 package apigroup
 
 import (
-	//"fmt"
-	//"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -19,7 +17,7 @@ type ApiGroupForm struct {
 	Name        string `json:"name" validate:"required,max=20"`
 	Description string `json:"description" validate:"max=100"`
 	Creator     string `json:"creator"`
-	Project     string `json:"project"`
+	Project     uint   `json:"project_id"`
 }
 
 func CreateApiGroup(c echo.Context) error {
@@ -44,7 +42,7 @@ func CreateApiGroup(c echo.Context) error {
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
@@ -93,8 +91,8 @@ func CreateApiGroup(c echo.Context) error {
 
 	agf.ID = 0
 	copier.Copy(ag, agf)
-	ag.Creator = u.ID
-	ag.Project = p.ID
+	ag.CreatorID = u.ID
+	ag.ProjectID = p.ID
 
 	if err := models.CreateApiGroup(ag); err != nil {
 		log.WithFields(log.Fields{
@@ -106,7 +104,7 @@ func CreateApiGroup(c echo.Context) error {
 
 	agf.ID = ag.ID
 	agf.Creator = u.Name
-	agf.Project = p.Name
+	agf.Project = ag.ProjectID
 
 	log.WithFields(log.Fields{
 		"apigroup": *ag,
@@ -137,21 +135,21 @@ func GetApiGroupByID(c echo.Context) error {
 		})
 	}
 
-	p, _ := models.GetProjectByID(a.Project)
+	p, _ := models.GetProjectByID(a.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "project不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
 		})
 	}
 
-	u, _ := models.GetUserByID(a.Creator)
+	u, _ := models.GetUserByID(a.CreatorID)
 	if u == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "user不存在",
@@ -181,7 +179,7 @@ func GetApiGroupByID(c echo.Context) error {
 	agf := new(ApiGroupForm)
 	copier.Copy(agf, a)
 	agf.Creator = u.Name
-	agf.Project = p.Name
+	agf.Project = p.ID
 
 	return c.JSON(http.StatusOK, agf)
 }
@@ -208,21 +206,21 @@ func UpdateApiGroupByID(c echo.Context) error {
 		})
 	}
 
-	p, _ := models.GetProjectByID(ag.Project)
+	p, _ := models.GetProjectByID(ag.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "project不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
 		})
 	}
 
-	u, _ := models.GetUserByID(ag.Creator)
+	u, _ := models.GetUserByID(ag.CreatorID)
 	if u == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "user不存在",
@@ -274,7 +272,7 @@ func UpdateApiGroupByID(c echo.Context) error {
 	agf := new(ApiGroupForm)
 	copier.Copy(agf, ag)
 	agf.Creator = u.Name
-	agf.Project = p.Name
+	agf.Project = p.ID
 
 	log.WithFields(log.Fields{
 		"apigroup": *ag,
@@ -305,14 +303,14 @@ func DeleteApiGroupByID(c echo.Context) error {
 		})
 	}
 
-	p, _ := models.GetProjectByID(ag.Project)
+	p, _ := models.GetProjectByID(ag.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "project不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
@@ -348,4 +346,64 @@ func DeleteApiGroupByID(c echo.Context) error {
 		"operator": username,
 	}).Error("delete apigroup success")
 	return c.NoContent(http.StatusNoContent)
+}
+
+func GetApiGroupApis(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	//fmt.Println(tokenInfo.Name)
+
+	id := c.Param("id")
+	intstr, _ := strconv.Atoi(id)
+
+	a, _ := models.GetApiGroupByID(uint(intstr))
+	if a == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "api group不存在",
+		})
+	}
+
+	p, _ := models.GetProjectByID(a.ProjectID)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
+	t, _ := models.GetTeamByID(p.TeamID)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	username := tokenInfo.Name
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag {
+		flag = models.IsTeamReader(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	apis, _ := models.GetApiGroupApis(a.ID)
+
+	return c.JSON(http.StatusOK, apis)
 }

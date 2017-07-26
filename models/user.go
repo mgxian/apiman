@@ -220,3 +220,76 @@ func GetToken(name, password string) (string, error) {
 
 	return "", errors.New("username or password is not right")
 }
+
+type Teams struct {
+	Team
+	TeamID  uint   `json:"-"`
+	UserID  uint   `json:"-"`
+	RoleID  uint   `json:"-"`
+	Role    string `json:"role"`
+	Creator string `json:"creator"`
+}
+
+func (Teams) TableName() string {
+	return "team_users"
+}
+
+func GetUserTeams(username string) ([]*Teams, error) {
+	teams := make([]*Teams, 0)
+	u, _ := GetUserByName(username)
+	err := db.Where("user_id = ?", u.ID).Find(&teams).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	role := "reader"
+	for _, team := range teams {
+		t, _ := GetTeamByID(team.TeamID)
+		u, _ := GetUserByID(t.CreatorID)
+		switch team.RoleID {
+		case Maintainer:
+			role = "maintainer"
+		case Member:
+			role = "member"
+		case Reader:
+			role = "reader"
+		default:
+		}
+		team.Role = role
+		team.Creator = u.Name
+		team.Name = t.Name
+	}
+
+	return teams, nil
+}
+
+func GetUserProjects(u_id uint) ([]*Projects, error) {
+	ps := make([]*Projects, 0)
+	tus := make([]*TeamUser, 0)
+
+	if err := db.Where("user_id = ?", u_id).Find(&tus).Error; err != nil {
+		return nil, err
+	}
+
+	for _, tu := range tus {
+		ps_t := make([]*Projects, 0)
+		err := db.Where("team_id = ?", tu.TeamID).Find(&ps_t).Error
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p_t := range ps_t {
+			ps = append(ps, p_t)
+		}
+	}
+
+	for _, p := range ps {
+		u, _ := GetUserByID(p.CreatorID)
+		t, _ := GetTeamByID(p.TeamID)
+		p.Creator = u.Name
+		p.Team = t.Name
+	}
+
+	return ps, nil
+}

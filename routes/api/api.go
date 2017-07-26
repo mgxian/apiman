@@ -95,14 +95,14 @@ func CreateApi(c echo.Context) error {
 		})
 	}
 
-	p, _ := models.GetProjectByID(g.Project)
+	p, _ := models.GetProjectByID(g.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "项目不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
@@ -127,8 +127,8 @@ func CreateApi(c echo.Context) error {
 
 	userid := strconv.Itoa(int(u.ID))
 	apif.Creator = userid
-	apif.Group = g.ID
-	apif.Project = p.ID
+	apif.GroupID = g.ID
+	apif.ProjectID = p.ID
 
 	err = saveApi(apif, true)
 	if err != nil {
@@ -183,14 +183,14 @@ func GetApi(c echo.Context) error {
 		})
 	}
 
-	p, _ := models.GetProjectByID(apiBaseInfo.Project)
+	p, _ := models.GetProjectByID(apiBaseInfo.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "项目不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
@@ -218,7 +218,7 @@ func GetApi(c echo.Context) error {
 	}
 
 	copier.Copy(api, apiBaseInfo)
-	ac, _ := models.GetUserByID(apiBaseInfo.Creator)
+	ac, _ := models.GetUserByID(apiBaseInfo.CreatorID)
 	api.Creator = ac.Name
 
 	if err := getRequestInfo(api); err != nil {
@@ -283,7 +283,7 @@ func UpdateApi(c echo.Context) error {
 		})
 	}
 
-	g, _ := models.GetApiGroupByID(api.Group)
+	g, _ := models.GetApiGroupByID(api.GroupID)
 	if g == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "api group不存在",
@@ -292,14 +292,14 @@ func UpdateApi(c echo.Context) error {
 
 	username := tokenInfo.Name
 
-	p, _ := models.GetProjectByID(g.Project)
+	p, _ := models.GetProjectByID(g.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "项目不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
@@ -324,9 +324,9 @@ func UpdateApi(c echo.Context) error {
 
 	apif.ID = api.ID
 	apif.CreatedAt = api.CreatedAt
-	apif.Creator = strconv.Itoa(int(api.Creator))
-	apif.Group = api.Group
-	apif.Project = api.Project
+	apif.Creator = strconv.Itoa(int(api.CreatorID))
+	apif.GroupID = api.GroupID
+	apif.ProjectID = api.ProjectID
 
 	req_len := len(apif.Request.RequestHeaders) +
 		len(apif.Request.RequestParameters)
@@ -338,7 +338,7 @@ func UpdateApi(c echo.Context) error {
 	if r_len == 0 {
 		apiBaseInfo := new(models.Api)
 		copier.Copy(apiBaseInfo, apif)
-		apiBaseInfo.Creator = api.Creator
+		apiBaseInfo.CreatorID = api.CreatorID
 		models.UpdateApi(apiBaseInfo)
 	} else {
 		err = saveApi(apif, false)
@@ -357,7 +357,7 @@ func UpdateApi(c echo.Context) error {
 		"api":      *apif,
 	}).Info("update api success")
 
-	u, _ := models.GetUserByID(api.Creator)
+	u, _ := models.GetUserByID(api.CreatorID)
 	if u != nil {
 		apif.Creator = u.Name
 	}
@@ -390,14 +390,14 @@ func DeleteApi(c echo.Context) error {
 		})
 	}
 
-	p, _ := models.GetProjectByID(api.Project)
+	p, _ := models.GetProjectByID(api.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "project不存在",
 		})
 	}
 
-	t, _ := models.GetTeamByID(p.Team)
+	t, _ := models.GetTeamByID(p.TeamID)
 	if t == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "team不存在",
@@ -505,7 +505,7 @@ func saveApi(api *ApiForm, create bool) error {
 	}
 
 	userid, _ := strconv.Atoi(api.Creator)
-	apiBaseInfo.Creator = uint(userid)
+	apiBaseInfo.CreatorID = uint(userid)
 
 	if err := models.CreateOrUpdateApi(apiBaseInfo); err != nil {
 		return err
