@@ -125,9 +125,97 @@ func CreateApi(c echo.Context) error {
 			})
 	}
 
-	userid := strconv.Itoa(int(u.ID))
-	apif.Creator = userid
+	apif.CreatorID = u.ID
 	apif.GroupID = g.ID
+	apif.ProjectID = p.ID
+
+	err = saveApi(apif, true)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"operator": tokenInfo.Name,
+			"error":    err.Error(),
+		}).Info("create or update api fail")
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	log.WithFields(log.Fields{
+		"operator": tokenInfo.Name,
+		"api":      *apif,
+	}).Info("create or update api success")
+
+	apif.Creator = u.Name
+
+	if err := getRequestInfo(apif); err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusCreated, apif)
+}
+
+func CreateDefaultApi(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	apif := new(ApiForm)
+	if err := c.Bind(apif); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	if err := c.Validate(apif); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	project_idstr := c.Param("id")
+	project_id, _ := strconv.Atoi(project_idstr)
+	p, _ := models.GetProjectByID(uint(project_id))
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "project不存在",
+		})
+	}
+
+	username := tokenInfo.Name
+	u, _ := models.GetUserByName(username)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "用户不存在",
+		})
+	}
+
+	t, _ := models.GetTeamByID(p.TeamID)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	apif.CreatorID = u.ID
 	apif.ProjectID = p.ID
 
 	err = saveApi(apif, true)
@@ -283,16 +371,9 @@ func UpdateApi(c echo.Context) error {
 		})
 	}
 
-	g, _ := models.GetApiGroupByID(api.GroupID)
-	if g == nil {
-		return c.JSON(http.StatusNotFound, echo.Map{
-			"message": "api group不存在",
-		})
-	}
-
 	username := tokenInfo.Name
 
-	p, _ := models.GetProjectByID(g.ProjectID)
+	p, _ := models.GetProjectByID(api.ProjectID)
 	if p == nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"message": "项目不存在",
@@ -324,7 +405,7 @@ func UpdateApi(c echo.Context) error {
 
 	apif.ID = api.ID
 	apif.CreatedAt = api.CreatedAt
-	apif.Creator = strconv.Itoa(int(api.CreatorID))
+	apif.CreatorID = api.CreatorID
 	apif.GroupID = api.GroupID
 	apif.ProjectID = api.ProjectID
 
@@ -503,9 +584,6 @@ func saveApi(api *ApiForm, create bool) error {
 	if create {
 		apiBaseInfo.ID = 0
 	}
-
-	userid, _ := strconv.Atoi(api.Creator)
-	apiBaseInfo.CreatorID = uint(userid)
 
 	if err := models.CreateOrUpdateApi(apiBaseInfo); err != nil {
 		return err

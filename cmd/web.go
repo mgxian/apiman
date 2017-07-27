@@ -116,6 +116,7 @@ func runWeb(c *cli.Context) error {
 
 	// api
 	e.POST("/apigroups/:id/apis", api.CreateApi)
+	e.POST("/projects/:id/apis", api.CreateDefaultApi)
 	e.GET("/apis/:id", api.GetApi)
 	e.PUT("/apis/:id", api.UpdateApi)
 	e.DELETE("/apis/:id", api.DeleteApi)
