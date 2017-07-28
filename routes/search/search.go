@@ -5,12 +5,16 @@ import (
 	"net/http"
 	"strings"
 
-	//"github.com/jinzhu/copier"
+	"github.com/jinzhu/copier"
 	//"github.com/bitly/go-simplejson"
 	"github.com/labstack/echo"
 	//log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/jwt"
+	"github.com/will835559313/apiman/routes/api"
+	"github.com/will835559313/apiman/routes/apigroup"
+	"github.com/will835559313/apiman/routes/project"
+	"github.com/will835559313/apiman/routes/team"
 )
 
 func Search(c echo.Context) error {
@@ -42,41 +46,61 @@ func Search(c echo.Context) error {
 
 		return c.JSON(http.StatusOK, users)
 	case "team":
-		teams := make([]*models.Team, 0)
+		teams := make([]*team.TeamForm, 0)
 		for _, id := range ids {
-			u, _ := models.GetTeamByID(id)
-			if u != nil {
-				teams = append(teams, u)
+			t, _ := models.GetTeamByID(id)
+			if t != nil {
+				tf := new(team.TeamForm)
+				copier.Copy(tf, t)
+				u, _ := models.GetUserByID(t.CreatorID)
+				tf.Creator = u.Name
+				teams = append(teams, tf)
 			}
 		}
 
 		return c.JSON(http.StatusOK, teams)
 	case "project":
-		projects := make([]*models.Project, 0)
+		projects := make([]*project.ProjectForm, 0)
 		for _, id := range ids {
-			u, _ := models.GetProjectByID(id)
-			if u != nil {
-				projects = append(projects, u)
+			p, _ := models.GetProjectByID(id)
+			if p != nil {
+				pf := new(project.ProjectForm)
+				copier.Copy(pf, p)
+				u, _ := models.GetUserByID(p.CreatorID)
+				pf.Creator = u.Name
+				t, _ := models.GetTeamByID(p.TeamID)
+				pf.Team = t.Name
+				projects = append(projects, pf)
 			}
 		}
 
 		return c.JSON(http.StatusOK, projects)
 	case "api_group":
-		api_groups := make([]*models.ApiGroup, 0)
+		api_groups := make([]*apigroup.ApiGroupForm, 0)
 		for _, id := range ids {
-			u, _ := models.GetApiGroupByID(id)
-			if u != nil {
-				api_groups = append(api_groups, u)
+			ag, _ := models.GetApiGroupByID(id)
+			if ag != nil {
+				agf := new(apigroup.ApiGroupForm)
+				copier.Copy(agf, ag)
+				u, _ := models.GetUserByID(ag.CreatorID)
+				//p, _ := models.GetProjectByID(ag.ProjectID)
+				agf.Creator = u.Name
+				agf.Project = ag.ProjectID
+				api_groups = append(api_groups, agf)
 			}
 		}
 
 		return c.JSON(http.StatusOK, api_groups)
 	case "api":
-		apis := make([]*models.Api, 0)
+		apis := make([]*api.ApiBaseInfo, 0)
 		for _, id := range ids {
-			u, _ := models.GetApiByID(id)
-			if u != nil {
-				apis = append(apis, u)
+			a, _ := models.GetApiByID(id)
+			if a != nil {
+				apif := new(api.ApiBaseInfo)
+				copier.Copy(apif, a)
+				u, _ := models.GetUserByID(a.CreatorID)
+				apif.Creator = u.Name
+				apis = append(apis, apif)
 			}
 		}
 
