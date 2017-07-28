@@ -13,6 +13,7 @@ import (
 	"github.com/will835559313/apiman/routes/api"
 	"github.com/will835559313/apiman/routes/apigroup"
 	"github.com/will835559313/apiman/routes/project"
+	"github.com/will835559313/apiman/routes/search"
 	"github.com/will835559313/apiman/routes/team"
 	"github.com/will835559313/apiman/routes/user"
 	"gopkg.in/go-playground/validator.v9"
@@ -70,6 +71,9 @@ func runWeb(c *cli.Context) error {
 	// set jwt
 	jwt.JwtInint()
 
+	// set search
+	models.SearchInit()
+
 	address := ":" + port
 	e := newWeb()
 	e.GET("/", routes.Index)
@@ -120,6 +124,9 @@ func runWeb(c *cli.Context) error {
 	e.GET("/apis/:id", api.GetApi)
 	e.PUT("/apis/:id", api.UpdateApi)
 	e.DELETE("/apis/:id", api.DeleteApi)
+
+	// search
+	e.GET("/search/:type", search.Search)
 
 	// log start
 	e.Logger.Fatal(e.Start(address))

@@ -1,6 +1,7 @@
 # Add by will
 *.log
 apiman.sql
+apiman.bleve
 
 # Created by https://www.gitignore.io/api/go,vim
 
