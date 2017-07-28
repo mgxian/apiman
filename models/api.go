@@ -3,8 +3,10 @@ package models
 import (
 	"fmt"
 	//"errors"
+	"strconv"
 	"time"
 
+	"github.com/jinzhu/copier"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -105,6 +107,20 @@ type ResponseParameter struct {
 	Remark      string    `json:"remark" validate:"required,max=100"`
 	ApiID       uint      `json:"api_id" gorm:"not null"`
 	ParentID    uint      `json:"parent_id"`
+}
+
+func (api *Api) AfterSave() (err error) {
+	d := new(ApiIndex)
+	copier.Copy(d, api)
+	d.SearchType = "api"
+	d.ID = strconv.Itoa(int(api.ID))
+	err = BleveIndex.Index("user:"+d.ID, d)
+	return
+}
+
+func (api *Api) AfterDelete() (err error) {
+	err = BleveIndex.Delete("api:" + strconv.Itoa(int(api.ID)))
+	return
 }
 
 // api

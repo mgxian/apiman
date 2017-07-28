@@ -17,7 +17,7 @@ import (
 
 var (
 	BleveIndex bleve.Index
-	IndexCount = 1
+	//IndexCount = 1
 )
 
 func SearchInit() {
@@ -113,7 +113,6 @@ func IndexData() {
 			d.ID = strconv.Itoa(int(u.ID))
 			//fmt.Printf("-----data %v\n", d)
 			BleveIndex.Index("user:"+d.ID, d)
-			IndexCount++
 		}
 	}
 
@@ -127,7 +126,6 @@ func IndexData() {
 			d.ID = strconv.Itoa(int(t.ID))
 			//fmt.Printf("-----data %v\n", d)
 			BleveIndex.Index("team:"+d.ID, d)
-			IndexCount++
 		}
 	}
 
@@ -141,7 +139,6 @@ func IndexData() {
 			d.ID = strconv.Itoa(int(p.ID))
 			//fmt.Printf("-----data %v\n", d)
 			BleveIndex.Index("project:"+d.ID, d)
-			IndexCount++
 		}
 	}
 
@@ -155,7 +152,6 @@ func IndexData() {
 			d.ID = strconv.Itoa(int(ag.ID))
 			//fmt.Printf("-----data %v\n", d)
 			BleveIndex.Index("api_group:"+d.ID, d)
-			IndexCount++
 		}
 	}
 
@@ -169,7 +165,6 @@ func IndexData() {
 			d.SearchType = "api"
 			//fmt.Printf("-----data %v\n", d)
 			BleveIndex.Index("api:"+d.ID, d)
-			IndexCount++
 		}
 	}
 }
@@ -212,7 +207,7 @@ func Search(q, searchType, sort, order string) ([]uint, error) {
 	//fmt.Println(qstring)
 
 	if searchResults.Total == 0 {
-		fmt.Println("noting match")
+		//fmt.Println("noting match")
 		return nil, nil
 	}
 
@@ -224,7 +219,7 @@ func Search(q, searchType, sort, order string) ([]uint, error) {
 		}
 	}
 
-	fmt.Println(searchResults)
+	//fmt.Println(searchResults)
 
 	return ids, nil
 }

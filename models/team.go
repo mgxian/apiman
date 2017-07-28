@@ -2,8 +2,10 @@ package models
 
 import (
 	//"errors"
+	"strconv"
 	"time"
 
+	"github.com/jinzhu/copier"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,6 +20,20 @@ type Team struct {
 	AvatarUrl   string    `json:"avatar_url"`
 	//DeletedAt   *time.Time `json:"-"`
 	//Maintainers uint   `json:"maintainers" gorm:"not null"`
+}
+
+func (t *Team) AfterSave() (err error) {
+	d := new(TeamIndex)
+	copier.Copy(d, t)
+	d.SearchType = "team"
+	d.ID = strconv.Itoa(int(t.ID))
+	err = BleveIndex.Index("user:"+d.ID, d)
+	return
+}
+
+func (t *Team) AfterDelete() (err error) {
+	err = BleveIndex.Delete("team:" + strconv.Itoa(int(t.ID)))
+	return
 }
 
 func CreateTeam(t *Team) error {

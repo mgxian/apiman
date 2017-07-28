@@ -4,9 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	//"fmt"
+	"strconv"
 	"time"
 
+	"github.com/jinzhu/copier"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/pkg/jwt"
@@ -22,6 +23,21 @@ type User struct {
 	Nickname  string `json:"nickname" gorm:"not null"`
 	Password  string `json:"-" gorm:"not null"`
 	AvatarUrl string `json:"avatar_url"`
+}
+
+func (u *User) AfterSave() (err error) {
+	d := new(UserIndex)
+	copier.Copy(d, u)
+	d.SearchType = "user"
+	d.ID = strconv.Itoa(int(u.ID))
+	//fmt.Printf("-----data %v\n", d)
+	err = BleveIndex.Index("user:"+d.ID, d)
+	return
+}
+
+func (u *User) AfterDelete() (err error) {
+	err = BleveIndex.Delete("user:" + strconv.Itoa(int(u.ID)))
+	return
 }
 
 func CreateUser(u *User) error {

@@ -3,8 +3,10 @@ package models
 import (
 	//"fmt"
 	//"errors"
+	"strconv"
 	"time"
 
+	"github.com/jinzhu/copier"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,6 +20,20 @@ type ApiGroup struct {
 	CreatorID   uint      `json:"creator" gorm:"default 0"`
 	ProjectID   uint      `json:"project" gorm:"default 0"`
 	//DeletedAt   *time.Time `json:"-"`
+}
+
+func (ag *ApiGroup) AfterSave() (err error) {
+	d := new(ApiGroupIndex)
+	copier.Copy(d, ag)
+	d.SearchType = "api_group"
+	d.ID = strconv.Itoa(int(ag.ID))
+	err = BleveIndex.Index("user:"+d.ID, d)
+	return
+}
+
+func (ag *ApiGroup) AfterDelete() (err error) {
+	err = BleveIndex.Delete("api_group:" + strconv.Itoa(int(ag.ID)))
+	return
 }
 
 func CreateApiGroup(apigroup *ApiGroup) error {
