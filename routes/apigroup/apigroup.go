@@ -66,7 +66,7 @@ func CreateApiGroup(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -170,7 +170,7 @@ func GetApiGroupByID(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -236,7 +236,7 @@ func UpdateApiGroupByID(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -327,7 +327,7 @@ func DeleteApiGroupByID(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -397,7 +397,7 @@ func GetApiGroupApis(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})

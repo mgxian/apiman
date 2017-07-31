@@ -40,7 +40,7 @@ func CreateProject(c echo.Context) error {
 	flag := models.IsTeamMaintainer(teamname, username)
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -201,7 +201,7 @@ func UpdateProjectByID(c echo.Context) error {
 	flag := models.IsTeamMaintainer(teamname, username)
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -297,7 +297,7 @@ func DeleteProjectByID(c echo.Context) error {
 
 	flag := models.IsTeamMaintainer(teamname, username)
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -380,7 +380,7 @@ func MigrateProjectByID(c echo.Context) error {
 
 	flag := models.IsTeamMaintainer(teamname, username)
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -395,7 +395,7 @@ func MigrateProjectByID(c echo.Context) error {
 
 	flag = models.IsTeamMaintainer(teamname, username)
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -455,7 +455,7 @@ func GetProjectApis(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -507,7 +507,7 @@ func GetProjectApiGroups(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})

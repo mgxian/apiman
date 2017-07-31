@@ -119,7 +119,7 @@ func CreateApi(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -209,7 +209,7 @@ func CreateDefaultApi(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -299,7 +299,7 @@ func GetApi(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -397,7 +397,7 @@ func UpdateApi(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -495,7 +495,7 @@ func DeleteApi(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})

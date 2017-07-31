@@ -121,7 +121,7 @@ func UpdateUserByName(c echo.Context) error {
 	name := c.Param("username")
 
 	if name != tokenInfo.Name && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -188,7 +188,7 @@ func DeleteUserByName(c echo.Context) error {
 	name := c.Param("username")
 
 	if name != tokenInfo.Name && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -221,7 +221,7 @@ func ChangeUserPassword(c echo.Context) error {
 	name := c.Param("username")
 
 	if name != tokenInfo.Name && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})

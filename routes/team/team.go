@@ -64,7 +64,7 @@ func CreateTeam(c echo.Context) error {
 	}
 
 	if u.Name != tokenInfo.Name && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -165,7 +165,7 @@ func AddOrUpdateTeamMember(c echo.Context) error {
 	flag := models.IsTeamMaintainer(teamname, operator)
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -226,7 +226,7 @@ func RemoveTeamMember(c echo.Context) error {
 	flag := models.IsTeamMaintainer(teamname, operator)
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -293,7 +293,7 @@ func UpdateTeamByName(c echo.Context) error {
 	//fmt.Printf("flag------------%v", flag)
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -359,7 +359,7 @@ func DeleteTeamByName(c echo.Context) error {
 	flag := models.IsTeamMaintainer(teamname, username)
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -419,7 +419,7 @@ func GetTeamMember(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
@@ -466,7 +466,7 @@ func GetTeamProjets(c echo.Context) error {
 	}
 
 	if !flag && !tokenInfo.Admin {
-		return c.JSON(http.StatusUnauthorized,
+		return c.JSON(http.StatusForbidden,
 			echo.Map{
 				"message": "你没有此权限",
 			})
