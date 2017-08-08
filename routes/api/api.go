@@ -1,9 +1,13 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/jinzhu/copier"
 	//"github.com/bitly/go-simplejson"
@@ -52,6 +56,36 @@ type ApiBaseInfoForm struct {
 type ApiData struct {
 	ApiBaseInfo `json:"base_info"`
 	RequestForm
+}
+
+//type ApiTestForm struct {
+//	URI      string `json:"uri" validate:"required,max=100"`
+//	Protocol uint   `json:"protocol" validate:"required,max=20"`
+//	Method   uint   `json:"method" validate:"required,max=20"`
+//	Request  struct {
+//		Headers []struct {
+//			Name  string `json:"name" validate:"required"`
+//			Value string `json:"value" validate:"required"`
+//		} `json:"headers"`
+//		Parameters interface{}
+//	} `json:"request"`
+//}
+
+type Header struct {
+	Name  string `json:"name" validate:"required"`
+	Value string `json:"value" validate:"required"`
+}
+
+type ApiTestForm struct {
+	URL        string      `json:"url" validate:"required,max=100"`
+	Headers    []*Header   `json:"headers"`
+	Parameters interface{} `json:"parameters"`
+}
+
+type ApiTestResponse struct {
+	StatusCode int         `json:"status_code"`
+	Headers    []*Header   `json:"headers"`
+	Response   interface{} `json:"response"`
 }
 
 func CreateApi(c echo.Context) error {
@@ -515,6 +549,161 @@ func DeleteApi(c echo.Context) error {
 		"operator": username,
 	}).Error("delete api success")
 	return c.NoContent(http.StatusNoContent)
+}
+
+func TestApi(c echo.Context) error {
+	tokenInfo, err := jwt.GetClaims(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized,
+			echo.Map{
+				"message": err.Error(),
+			})
+	}
+
+	api_idstr := c.Param("id")
+	api_id, _ := strconv.Atoi(api_idstr)
+
+	apiTestForm := new(ApiTestForm)
+
+	// get base info
+	apiBaseInfo, _ := models.GetApiByID(uint(api_id))
+	if apiBaseInfo == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "API不存在",
+		})
+	}
+
+	username := tokenInfo.Name
+	u, _ := models.GetUserByName(username)
+	if u == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "用户不存在",
+		})
+	}
+
+	p, _ := models.GetProjectByID(apiBaseInfo.ProjectID)
+	if p == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "项目不存在",
+		})
+	}
+
+	t, _ := models.GetTeamByID(p.TeamID)
+	if t == nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"message": "team不存在",
+		})
+	}
+
+	teamname := t.Name
+
+	flag := models.IsTeamMaintainer(teamname, username)
+
+	if !flag {
+		flag = models.IsTeamMember(teamname, username)
+	}
+
+	if !flag {
+		flag = models.IsTeamReader(teamname, username)
+	}
+
+	if !flag && !tokenInfo.Admin {
+		return c.JSON(http.StatusForbidden,
+			echo.Map{
+				"message": "你没有此权限",
+			})
+	}
+
+	if err := c.Bind(apiTestForm); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	if err := c.Validate(apiTestForm); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	method := ""
+	switch apiBaseInfo.Method {
+	case models.GET:
+		method = "GET"
+	case models.POST:
+		method = "POST"
+	case models.PUT:
+		method = "PUT"
+	case models.DELETE:
+		method = "DELETE"
+	case models.HEAD:
+		method = "HEAD"
+	case models.PATCH:
+		method = "PATCH"
+	case models.OPTIONS:
+		method = "OPTIONS"
+	default:
+		method = "GET"
+	}
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	jsonData, err := json.Marshal(apiTestForm.Parameters)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusOK, apiTestForm)
+	}
+
+	jsonDataString := string(jsonData)
+	//fmt.Println(jsonDataString)
+	host := "192.168.12.1:3000"
+	url := "http://" + host + apiBaseInfo.URI
+	url = apiTestForm.URL
+	req, err := http.NewRequest(method, url, strings.NewReader(jsonDataString))
+
+	for _, header := range apiTestForm.Headers {
+		req.Header.Set(header.Name, header.Value)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "API请求异常",
+		})
+	}
+
+	apiTestResponse := new(ApiTestResponse)
+	for k, v := range resp.Header {
+		header := new(Header)
+		header.Name = k
+		header.Value = strings.Join(v, ",")
+		apiTestResponse.Headers = append(apiTestResponse.Headers, header)
+	}
+
+	bodyData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "API请求异常",
+		})
+	}
+
+	apiTestResponse.Response = new(interface{})
+	if err := json.Unmarshal(bodyData, apiTestResponse.Response); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "API响应数据异常",
+		})
+	}
+
+	apiTestResponse.StatusCode = resp.StatusCode
+
+	return c.JSON(http.StatusOK, apiTestResponse)
+
 }
 
 func getRequestParameters(api_id, p_id uint) []*RequestParameters {

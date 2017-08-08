@@ -124,6 +124,7 @@ func runWeb(c *cli.Context) error {
 	e.GET("/apis/:id", api.GetApi)
 	e.PUT("/apis/:id", api.UpdateApi)
 	e.DELETE("/apis/:id", api.DeleteApi)
+	e.POST("/apis/:id/test", api.TestApi)
 
 	// search
 	e.GET("/search/:type", search.Search)
