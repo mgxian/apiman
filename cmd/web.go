@@ -84,6 +84,8 @@ func runWeb(c *cli.Context) error {
 	e.PUT("/users/:username", user.UpdateUserByName)
 	e.DELETE("/users/:username", user.DeleteUserByName)
 	e.POST("/users/:username/change_password", user.ChangeUserPassword)
+	e.DELETE("/users/:username/password", user.SendUserResetPasswordLink)
+	e.POST("/users/:username/reset_password", user.ResetUserPassword)
 	e.GET("/users/:username/teams", user.GetUserTeams)
 	e.GET("/users/:username/projects", user.GetUserProjects)
 

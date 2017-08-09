@@ -21,6 +21,7 @@ type User struct {
 	//DeletedAt *time.Time `json:"-"`
 	Name      string `json:"name" gorm:"not null;unique"`
 	Nickname  string `json:"nickname" gorm:"not null"`
+	Email     string `json:"email" gorm:"not null"`
 	Password  string `json:"-" gorm:"not null"`
 	AvatarUrl string `json:"avatar_url"`
 }
@@ -167,7 +168,7 @@ func checkPassword(id uint, str string) bool {
 	return false
 }
 
-func setPassword(id uint, str string) error {
+func SetPassword(id uint, str string) error {
 	hash, err := getPassord(str)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -195,7 +196,7 @@ func ChangeUserPassword(oldPassword, newPassword string, id uint) error {
 	if !checkPassword(id, oldPassword) {
 		return errors.New("passord is not right")
 	}
-	err := setPassword(id, newPassword)
+	err := SetPassword(id, newPassword)
 	return err
 }
 
