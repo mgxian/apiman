@@ -331,33 +331,6 @@ func SendUserResetPasswordLink(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func RedirectToSetPasswordPage(c echo.Context) error {
-	username := c.Param("username")
-	resetToken := c.QueryParam("token")
-	if resetToken == "" {
-		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "请求数据错误",
-		})
-	}
-
-	tokenInfo, err := jwt.ParseToken(resetToken)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "token不正确",
-		})
-	}
-
-	if tokenInfo.Name != username {
-		return c.JSON(http.StatusBadRequest, echo.Map{
-			"message": "用户名与token不匹配",
-		})
-	}
-
-	url := "?token=" + token
-
-	return c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
 func ResetUserPassword(c echo.Context) error {
 	username := c.Param("username")
 	resetToken := c.QueryParam("token")
