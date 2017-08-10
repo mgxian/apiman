@@ -8,6 +8,7 @@ import (
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/jwt"
 	mylog "github.com/will835559313/apiman/pkg/log"
+	"github.com/will835559313/apiman/pkg/mail"
 	"github.com/will835559313/apiman/pkg/setting"
 	"github.com/will835559313/apiman/routes"
 	"github.com/will835559313/apiman/routes/api"
@@ -73,6 +74,9 @@ func runWeb(c *cli.Context) error {
 
 	// set search
 	models.SearchInit()
+
+	// set mail
+	mail.MailInit()
 
 	address := ":" + port
 	e := newWeb()
