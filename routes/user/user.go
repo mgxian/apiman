@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	//"strings"
-
-	"crypto/tls"
 
 	"github.com/jinzhu/copier"
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 	"github.com/will835559313/apiman/models"
 	"github.com/will835559313/apiman/pkg/jwt"
-	"gopkg.in/gomail.v2"
+	"github.com/will835559313/apiman/pkg/mail"
 )
 
 type UserForm struct {
@@ -317,26 +314,48 @@ func SendUserResetPasswordLink(c echo.Context) error {
 	resetLink := "http://" + c.Request().Host + "/users/" + username +
 		"/reset_password?token=" + token
 
-	fmt.Println("---", resetLink)
+	//fmt.Println("---", resetLink)
 
-	d := gomail.NewDialer("smtp.163.com", 25, "niupu_monitor@163.com", "yrtlkepdanarzaql")
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	content := "你好 <b>" + u.Nickname +
+		`</b>!<br>有人请求修改你的密码，你可以点击下面的链接去操作。<br>` +
+		`<a href="` + resetLink + `">修改密码</a>` +
+		`<br>如果你自己没有请求修改，请忽略本邮件。<br>
+		一旦你访问了该链接将会创建新的密码；不访问链接密码不会被修改。`
 
-	m := gomail.NewMessage()
-	m.SetHeader("From", "apiman<niupu_monitor@163.com>")
-	m.SetHeader("To", "will835559313@163.com", "maoguangxian@famulei.com")
-	//m.SetAddressHeader("Cc", "dan@example.com", "Dan")
-	m.SetHeader("Subject", "重置密码")
-	m.SetBody("text", resetLink)
-	//m.Attach("/home/Alex/lolcat.jpg")
+	//fmt.Println(content)
 
-	if err := d.DialAndSend(m); err != nil {
+	if err := mail.SendHtml([]string{u.Email}, "apiman - 重置密码", content); err != nil {
 		fmt.Println(err)
 	}
 
-	return c.JSON(http.StatusCreated, echo.Map{
-		"reset_token": token,
-	})
+	return c.NoContent(http.StatusOK)
+}
+
+func RedirectToSetPasswordPage(c echo.Context) error {
+	username := c.Param("username")
+	resetToken := c.QueryParam("token")
+	if resetToken == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "请求数据错误",
+		})
+	}
+
+	tokenInfo, err := jwt.ParseToken(resetToken)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "token不正确",
+		})
+	}
+
+	if tokenInfo.Name != username {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "用户名与token不匹配",
+		})
+	}
+
+	url := "?token=" + token
+
+	return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func ResetUserPassword(c echo.Context) error {
