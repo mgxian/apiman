@@ -1,5 +1,6 @@
 # Add by will
 *.log
+*.zip
 apiman.sql
 apiman.bleve
 conf/custom.app.conf

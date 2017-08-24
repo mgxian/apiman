@@ -405,5 +405,7 @@ func GetApiGroupApis(c echo.Context) error {
 
 	apis, _ := models.GetApiGroupApis(a.ID)
 
-	return c.JSON(http.StatusOK, apis)
+	return c.JSON(http.StatusOK, echo.Map{
+		"apis": apis,
+	})
 }

@@ -44,7 +44,9 @@ func Search(c echo.Context) error {
 			}
 		}
 
-		return c.JSON(http.StatusOK, users)
+		return c.JSON(http.StatusOK, echo.Map{
+			"users": users,
+		})
 	case "team":
 		teams := make([]*team.TeamForm, 0)
 		for _, id := range ids {
@@ -58,7 +60,9 @@ func Search(c echo.Context) error {
 			}
 		}
 
-		return c.JSON(http.StatusOK, teams)
+		return c.JSON(http.StatusOK, echo.Map{
+			"teams": teams,
+		})
 	case "project":
 		projects := make([]*project.ProjectForm, 0)
 		for _, id := range ids {
@@ -74,7 +78,9 @@ func Search(c echo.Context) error {
 			}
 		}
 
-		return c.JSON(http.StatusOK, projects)
+		return c.JSON(http.StatusOK, echo.Map{
+			"projects": projects,
+		})
 	case "api_group":
 		api_groups := make([]*apigroup.ApiGroupForm, 0)
 		for _, id := range ids {
@@ -90,7 +96,9 @@ func Search(c echo.Context) error {
 			}
 		}
 
-		return c.JSON(http.StatusOK, api_groups)
+		return c.JSON(http.StatusOK, echo.Map{
+			"api_groups": api_groups,
+		})
 	case "api":
 		apis := make([]*api.ApiBaseInfo, 0)
 		for _, id := range ids {
@@ -104,7 +112,9 @@ func Search(c echo.Context) error {
 			}
 		}
 
-		return c.JSON(http.StatusOK, apis)
+		return c.JSON(http.StatusOK, echo.Map{
+			"apis": apis,
+		})
 	default:
 		return c.NoContent(http.StatusBadRequest)
 	}

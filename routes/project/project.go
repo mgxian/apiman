@@ -462,7 +462,9 @@ func GetProjectApis(c echo.Context) error {
 	}
 
 	apis, _ := models.GetProjectApis(p.ID)
-	return c.JSON(http.StatusOK, apis)
+	return c.JSON(http.StatusOK, echo.Map{
+		"apis": apis,
+	})
 }
 
 func GetProjectApiGroups(c echo.Context) error {
@@ -514,5 +516,7 @@ func GetProjectApiGroups(c echo.Context) error {
 	}
 
 	api_groups, _ := models.GetProjectApiGroups(p.ID)
-	return c.JSON(http.StatusOK, api_groups)
+	return c.JSON(http.StatusOK, echo.Map{
+		"api_groups": api_groups,
+	})
 }

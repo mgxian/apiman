@@ -271,7 +271,9 @@ func GetTeamMembers(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusOK, users)
+	return c.JSON(http.StatusOK, echo.Map{
+		"members": users,
+	})
 }
 
 func UpdateTeamByName(c echo.Context) error {
@@ -477,5 +479,7 @@ func GetTeamProjets(c echo.Context) error {
 		return c.NoContent(http.StatusNotFound)
 	}
 
-	return c.JSON(http.StatusOK, tps)
+	return c.JSON(http.StatusOK, echo.Map{
+		"projects": tps,
+	})
 }

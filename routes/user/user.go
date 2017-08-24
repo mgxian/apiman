@@ -434,7 +434,9 @@ func GetUserTeams(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusOK, teams)
+	return c.JSON(http.StatusOK, echo.Map{
+		"teams": teams,
+	})
 }
 
 func GetUserProjects(c echo.Context) error {
@@ -459,5 +461,7 @@ func GetUserProjects(c echo.Context) error {
 
 	ps, _ := models.GetUserProjects(u.ID)
 
-	return c.JSON(http.StatusOK, ps)
+	return c.JSON(http.StatusOK, echo.Map{
+		"projects": ps,
+	})
 }
